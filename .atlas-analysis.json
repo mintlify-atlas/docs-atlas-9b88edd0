@@ -1,0 +1,120 @@
+{
+  "projectType": "saas",
+  "projectName": "LibreChat",
+  "projectDescription": "Self-hosted AI chat platform that unifies all major AI providers with agents, MCP support, code interpreter, and enterprise authentication.",
+  "theme": "palm",
+  "primaryColor": "#10a37f",
+  "lightColor": "#7fd4c1",
+  "darkColor": "#0d8062",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/agents",
+              "features/code-interpreter",
+              "features/web-search",
+              "features/artifacts",
+              "features/image-generation",
+              "features/multimodal-chat",
+              "features/presets",
+              "features/conversation-management",
+              "features/speech-audio"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/librechat-yaml",
+              "configuration/ai-providers",
+              "configuration/custom-endpoints",
+              "configuration/authentication",
+              "configuration/file-storage"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/docker-compose",
+              "deployment/cloud-platforms",
+              "deployment/kubernetes"
+            ]
+          },
+          {
+            "group": "User Management",
+            "pages": [
+              "user-management/authentication-setup",
+              "user-management/user-administration",
+              "user-management/permissions",
+              "user-management/token-management"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/conversations",
+              "api/messages",
+              "api/agents",
+              "api/presets",
+              "api/files",
+              "api/users"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-provider AI chat interface",
+    "AI Agents with MCP support",
+    "Code Interpreter with sandboxed execution",
+    "Web Search integration",
+    "Generative UI with Code Artifacts",
+    "Image generation and editing",
+    "Multi-user authentication (OAuth2, LDAP, Email)",
+    "Conversation and message management",
+    "Preset and prompt sharing",
+    "File upload and multimodal support",
+    "Speech-to-text and text-to-speech",
+    "Docker and Kubernetes deployment"
+  ],
+  "publicApiSurface": [
+    "POST /api/convos",
+    "GET /api/convos",
+    "POST /api/messages",
+    "GET /api/agents",
+    "POST /api/agents",
+    "GET /api/presets",
+    "POST /api/presets",
+    "POST /api/files/upload",
+    "GET /api/files",
+    "GET /api/user",
+    "POST /api/auth/login",
+    "POST /api/auth/register"
+  ]
+}
