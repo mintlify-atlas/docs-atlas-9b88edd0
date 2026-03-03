@@ -1,0 +1,494 @@
+---
+title: User Administration
+description: Manage user accounts with CLI scripts for creating, listing, banning, and deleting users in LibreChat
+---
+
+LibreChat provides command-line scripts for managing user accounts. All scripts are located in the `config/` directory and can be executed via npm scripts defined in `package.json`.
+
+## Available Commands
+
+All user administration commands are available through npm scripts:
+
+```json package.json
+"scripts": {
+  "create-user": "node config/create-user.js",
+  "invite-user": "node config/invite-user.js",
+  "list-users": "node config/list-users.js",
+  "reset-password": "node config/reset-password.js",
+  "ban-user": "node config/ban-user.js",
+  "delete-user": "node config/delete-user.js",
+  "user-stats": "node config/user-stats.js"
+}
+```
+
+## Creating Users
+
+Create new user accounts with the `create-user` script.
+
+### Interactive Mode
+
+Run without arguments to be prompted for input:
+
+```bash
+npm run create-user
+```
+
+You'll be prompted for:
+- Email address
+- Name (defaults to username from email)
+- Username (defaults to username from email)
+- Password (leave blank to auto-generate)
+- Email verification status (Y/n)
+
+### Command-Line Mode
+
+Provide arguments directly:
+
+```bash
+npm run create-user -- <email> <name> <username> [password]
+```
+
+<Note>
+  Passing passwords as command-line arguments is not recommended for security reasons. Use interactive mode in production.
+</Note>
+
+### Examples
+
+<CodeGroup>
+```bash Interactive
+npm run create-user
+# Email: admin@example.com
+# Name: Admin User
+# Username: admin
+# Password: (leave blank to generate)
+# Email verified? Y
+```
+
+```bash With Arguments
+npm run create-user -- admin@example.com "Admin User" admin
+```
+
+```bash Unverified Email
+npm run create-user -- user@example.com "Test User" testuser --email-verified=false
+```
+
+```bash With Provider
+npm run create-user -- user@example.com "LDAP User" ldapuser --provider=ldap
+```
+</CodeGroup>
+
+### Email Verification Behavior
+
+The `--email-verified` flag controls whether the user's email is marked as verified:
+
+<Steps>
+  <Step title="Verified (default)">
+    User can log in immediately:
+    ```bash
+    npm run create-user -- user@example.com "Name" username --email-verified=true
+    ```
+  </Step>
+
+  <Step title="Unverified with Email Service">
+    User receives a verification email:
+    ```bash
+    npm run create-user -- user@example.com "Name" username --email-verified=false
+    ```
+    <Note>
+      Requires email service to be configured.
+    </Note>
+  </Step>
+
+  <Step title="Unverified without Email Service">
+    User must attempt login to receive verification link:
+    ```bash .env
+    ALLOW_UNVERIFIED_EMAIL_LOGIN=true
+    ```
+    ```bash
+    npm run create-user -- user@example.com "Name" username --email-verified=false
+    ```
+  </Step>
+</Steps>
+
+### Script Implementation
+
+The create-user script (`config/create-user.js`) uses the `registerUser` service:
+
+```javascript config/create-user.js
+const { registerUser } = require('~/server/services/AuthService');
+
+const user = { email, password, name, username, confirm_password: password, provider };
+const result = await registerUser(user, { emailVerified });
+```
+
+## Inviting Users
+
+Generate invitation links for new users:
+
+```bash
+npm run invite-user
+```
+
+This creates an invitation token that can be shared with users to register.
+
+## Listing Users
+
+View all registered users:
+
+```bash
+npm run list-users
+```
+
+### Output Format
+
+```
+User List:
+----------------------------------------
+ID: 507f1f77bcf86cd799439011
+Email: admin@example.com
+Username: admin
+Name: Admin User
+Provider: local
+Created: 2024-01-15T10:30:00.000Z
+----------------------------------------
+ID: 507f1f77bcf86cd799439012
+Email: user@example.com
+Username: user
+Name: Regular User
+Provider: google
+Created: 2024-01-16T14:20:00.000Z
+----------------------------------------
+
+Total Users: 2
+```
+
+### Script Implementation
+
+```javascript config/list-users.js
+const users = await User.find({}, 'email provider avatar username name createdAt');
+
+users.forEach((user) => {
+  console.log(`ID: ${user._id.toString()}`);
+  console.log(`Email: ${user.email}`);
+  console.log(`Username: ${user.username || 'N/A'}`);
+  console.log(`Name: ${user.name || 'N/A'}`);
+  console.log(`Provider: ${user.provider || 'email'}`);
+  console.log(`Created: ${user.createdAt}`);
+});
+```
+
+## Resetting Passwords
+
+Reset a user's password securely:
+
+```bash
+npm run reset-password
+```
+
+<Steps>
+  <Step title="Enter Email">
+    Provide the user's email address:
+    ```
+    Enter user email: user@example.com
+    ```
+  </Step>
+
+  <Step title="Enter New Password">
+    Password must be at least 8 characters:
+    ```
+    Enter new password: ********
+    Confirm new password: ********
+    ```
+  </Step>
+
+  <Step title="Confirmation">
+    Password is hashed and saved, invalidating old sessions:
+    ```
+    Password successfully reset!
+    ```
+  </Step>
+</Steps>
+
+### Password Requirements
+
+- Minimum 8 characters (configurable via `MIN_PASSWORD_LENGTH`)
+- Passwords must match on confirmation
+- Old sessions are invalidated via `passwordVersion` update
+
+### Script Implementation
+
+```javascript config/reset-password.js
+const bcrypt = require('bcryptjs');
+
+const salt = await bcrypt.genSalt(10);
+const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+await User.updateOne(
+  { email },
+  {
+    password: hashedPassword,
+    passwordVersion: Date.now(), // Invalidate old sessions
+  },
+);
+```
+
+<Warning>
+  Resetting a password invalidates all existing user sessions for security.
+</Warning>
+
+## Banning Users
+
+Temporarily ban users from accessing the system:
+
+```bash
+npm run ban-user <email> <duration-in-minutes>
+```
+
+### Examples
+
+<CodeGroup>
+```bash Ban for 60 minutes
+npm run ban-user user@example.com 60
+```
+
+```bash Ban for 24 hours
+npm run ban-user user@example.com 1440
+```
+
+```bash Interactive Mode
+npm run ban-user
+# Email: user@example.com
+# Duration (in minutes): 60
+```
+</CodeGroup>
+
+### Ban Implementation
+
+The ban-user script uses the violation system:
+
+```javascript config/ban-user.js
+const { ViolationTypes } = require('librechat-data-provider');
+const banViolation = require('~/cache/banViolation');
+
+const errorMessage = {
+  type: ViolationTypes.CONCURRENT,
+  violation_count: 20,
+  user_id: user._id,
+  prev_count: 0,
+  duration: duration,
+};
+
+await banViolation(req, res, errorMessage);
+```
+
+<Note>
+  Bans are stored in the cache layer and expire automatically after the specified duration.
+</Note>
+
+## Deleting Users
+
+Permanently delete user accounts and associated data:
+
+```bash
+npm run delete-user <email>
+```
+
+<Warning>
+  User deletion is irreversible and removes all associated data including conversations, files, and settings.
+</Warning>
+
+### Interactive Deletion
+
+<Steps>
+  <Step title="Specify User">
+    ```bash
+    npm run delete-user
+    # Email: user@example.com
+    ```
+  </Step>
+
+  <Step title="Confirm Deletion">
+    ```
+    Really delete user user@example.com (507f1f77bcf86cd799439012) and ALL their data? (y/N)
+    ```
+  </Step>
+
+  <Step title="Transaction History">
+    ```
+    Also delete all transaction history for this user? (y/N)
+    ```
+    <Note>
+      You can choose to retain transaction history for auditing purposes.
+    </Note>
+  </Step>
+
+  <Step title="Completion">
+    ```
+    ✔ Successfully deleted user user@example.com and all associated data.
+    ```
+  </Step>
+</Steps>
+
+### Data Deletion Scope
+
+The delete-user script removes:
+
+```javascript config/delete-user.js
+const tasks = [
+  Action.deleteMany({ user: uid }),
+  Agent.deleteMany({ author: uid }),
+  AgentApiKey.deleteMany({ user: uid }),
+  Assistant.deleteMany({ user: uid }),
+  Balance.deleteMany({ user: uid }),
+  ConversationTag.deleteMany({ user: uid }),
+  Conversation.deleteMany({ user: uid }),
+  Message.deleteMany({ user: uid }),
+  File.deleteMany({ user: uid }),
+  Key.deleteMany({ userId: uid }),
+  MemoryEntry.deleteMany({ userId: uid }),
+  PluginAuth.deleteMany({ userId: uid }),
+  Prompt.deleteMany({ author: uid }),
+  PromptGroup.deleteMany({ author: uid }),
+  Preset.deleteMany({ user: uid }),
+  Session.deleteMany({ user: uid }),
+  SharedLink.deleteMany({ user: uid }),
+  ToolCall.deleteMany({ user: uid }),
+  Token.deleteMany({ userId: uid }),
+  AclEntry.deleteMany({ principalId: user._id }),
+];
+
+if (deleteTx) {
+  tasks.push(Transaction.deleteMany({ user: uid }));
+}
+
+await Promise.all(tasks);
+
+// Remove user from groups
+await Group.updateMany({ memberIds: user._id }, { $pull: { memberIds: user._id } });
+
+// Delete user document
+await User.deleteOne({ _id: uid });
+```
+
+### Deleted Data Includes
+
+- User account and profile
+- All conversations and messages
+- Files and uploads
+- Agents and assistants
+- Prompts and prompt groups
+- Presets and settings
+- API keys and authentication tokens
+- Sessions
+- Shared links
+- Memory entries
+- Balance records
+- ACL entries
+- Optionally: Transaction history
+
+## User Statistics
+
+View user account statistics:
+
+```bash
+npm run user-stats
+```
+
+Displays aggregate information about user accounts, activity, and usage patterns.
+
+## Batch Operations
+
+For bulk user management, you can create custom scripts using the same patterns:
+
+### Example: Batch User Creation
+
+```javascript custom-script.js
+const { User } = require('@librechat/data-schemas').createModels(mongoose);
+const { registerUser } = require('~/server/services/AuthService');
+
+const users = [
+  { email: 'user1@example.com', name: 'User One', username: 'user1' },
+  { email: 'user2@example.com', name: 'User Two', username: 'user2' },
+];
+
+for (const userData of users) {
+  const password = Math.random().toString(36).slice(-18);
+  const user = { ...userData, password, confirm_password: password };
+  await registerUser(user, { emailVerified: true });
+  console.log(`Created: ${userData.email} with password: ${password}`);
+}
+```
+
+## Database Access
+
+All user administration scripts use MongoDB models from `@librechat/data-schemas`:
+
+```javascript
+const mongoose = require('mongoose');
+const { User } = require('@librechat/data-schemas').createModels(mongoose);
+const connect = require('./connect');
+
+await connect();
+const user = await User.findOne({ email });
+```
+
+## Best Practices
+
+<Warning>
+  Follow these guidelines when managing user accounts:
+</Warning>
+
+- Always use interactive mode for password resets in production
+- Verify user identity before performing account operations
+- Keep audit logs of administrative actions
+- Backup database before bulk deletions
+- Test scripts in development environment first
+- Use email verification for new accounts
+- Set appropriate ban durations based on violation severity
+- Consider data retention policies before deleting transaction history
+- Document custom batch operations
+- Implement approval workflows for sensitive operations
+
+## Troubleshooting
+
+### User Creation Fails
+
+**Error: User with that email or username already exists**
+
+```bash
+# Check existing users
+npm run list-users
+```
+
+### Password Reset Issues
+
+**Error: User not found**
+
+Verify the email address:
+
+```bash
+npm run list-users | grep user@example.com
+```
+
+### Deletion Script Hangs
+
+Large user accounts with many conversations may take time to delete. The script processes all related data:
+
+```bash
+# Monitor MongoDB operations
+mongosh --eval "db.currentOp()"
+```
+
+### Connection Errors
+
+Ensure MongoDB is running and `MONGO_URI` is configured:
+
+```bash .env
+MONGO_URI=mongodb://127.0.0.1:27017/LibreChat
+```
+
+## Next Steps
+
+- [Authentication Setup](/user-management/authentication-setup) - Configure authentication methods
+- [Permissions](/user-management/permissions) - Set up role-based access control
+- [Token Management](/user-management/token-management) - Manage user token balances

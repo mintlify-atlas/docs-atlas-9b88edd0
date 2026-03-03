@@ -1,0 +1,469 @@
+---
+title: Messages API
+description: API endpoints for managing messages within conversations
+---
+
+The Messages API allows you to create, retrieve, update, and delete messages within conversations, as well as perform advanced operations like branching messages and editing artifacts.
+
+## Authentication
+
+All endpoints require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## List Messages
+
+<CodeGroup>
+```bash GET /api/messages
+curl -X GET "https://your-domain.com/api/messages?conversationId=<conversation_id>&pageSize=25" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve messages with support for pagination, filtering by conversation, or full-text search.
+
+### Query Parameters
+
+<ParamField query="conversationId" type="string">
+  Filter messages by conversation ID
+</ParamField>
+
+<ParamField query="messageId" type="string">
+  Retrieve a specific message (requires conversationId)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search query (uses MeiliSearch)
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor for next page
+</ParamField>
+
+<ParamField query="sortBy" type="string" default="createdAt">
+  Sort field: `endpoint`, `createdAt`, or `updatedAt`
+</ParamField>
+
+<ParamField query="sortDirection" type="string" default="desc">
+  Sort direction: `asc` or `desc`
+</ParamField>
+
+<ParamField query="pageSize" type="integer" default="25">
+  Number of messages per page
+</ParamField>
+
+### Response
+
+<ResponseField name="messages" type="array">
+  Array of message objects
+  <Expandable title="Message object">
+    <ResponseField name="messageId" type="string">
+      Unique message identifier
+    </ResponseField>
+    <ResponseField name="conversationId" type="string">
+      Parent conversation ID
+    </ResponseField>
+    <ResponseField name="parentMessageId" type="string">
+      ID of the previous message in the thread
+    </ResponseField>
+    <ResponseField name="text" type="string">
+      Message text content (legacy field)
+    </ResponseField>
+    <ResponseField name="content" type="array">
+      Structured content array (text, images, tool calls, etc.)
+    </ResponseField>
+    <ResponseField name="isCreatedByUser" type="boolean">
+      Whether the message was created by the user
+    </ResponseField>
+    <ResponseField name="sender" type="string">
+      Message sender (user name or AI model)
+    </ResponseField>
+    <ResponseField name="endpoint" type="string">
+      Endpoint used (e.g., "openAI", "anthropic", "agents")
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Model name
+    </ResponseField>
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Cursor for next page, null if no more results
+</ResponseField>
+
+---
+
+## Get Messages by Conversation
+
+<CodeGroup>
+```bash GET /api/messages/:conversationId
+curl -X GET "https://your-domain.com/api/messages/<conversation_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve all messages in a specific conversation.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+### Response
+
+Returns an array of message objects (excludes internal MongoDB fields `_id`, `__v`, `user`).
+
+---
+
+## Get Specific Message
+
+<CodeGroup>
+```bash GET /api/messages/:conversationId/:messageId
+curl -X GET "https://your-domain.com/api/messages/<conversation_id>/<message_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve a specific message by conversation and message ID.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+<ParamField path="messageId" type="string" required>
+  The message ID
+</ParamField>
+
+### Response
+
+Returns the message object or **404 Not Found** if the message doesn't exist.
+
+---
+
+## Create Message
+
+<CodeGroup>
+```bash POST /api/messages/:conversationId
+curl -X POST "https://your-domain.com/api/messages/<conversation_id>" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messageId": "<message_id>",
+    "parentMessageId": "<parent_message_id>",
+    "text": "Hello, world!",
+    "content": [{"type": "text", "text": "Hello, world!"}],
+    "isCreatedByUser": true,
+    "sender": "User"
+  }'
+```
+</CodeGroup>
+
+Create a new message in a conversation.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="messageId" type="string" required>
+  Unique message identifier (UUID)
+</ParamField>
+
+<ParamField body="parentMessageId" type="string">
+  ID of the previous message in the thread
+</ParamField>
+
+<ParamField body="text" type="string">
+  Message text content (legacy)
+</ParamField>
+
+<ParamField body="content" type="array">
+  Structured content array with parts like text, images, or tool calls
+</ParamField>
+
+<ParamField body="isCreatedByUser" type="boolean" required>
+  Whether this is a user message
+</ParamField>
+
+<ParamField body="sender" type="string" required>
+  Sender name (e.g., "User" or model name)
+</ParamField>
+
+<ParamField body="endpoint" type="string">
+  Endpoint identifier
+</ParamField>
+
+<ParamField body="model" type="string">
+  Model name
+</ParamField>
+
+### Response
+
+Returns the saved message object.
+
+### Error Responses
+
+- **400 Bad Request**: Message not saved
+- **500 Internal Server Error**: Save failed
+
+---
+
+## Update Message Text
+
+<CodeGroup>
+```bash PUT /api/messages/:conversationId/:messageId
+curl -X PUT "https://your-domain.com/api/messages/<conversation_id>/<message_id>" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Updated message text",
+    "model": "gpt-4"
+  }'
+```
+</CodeGroup>
+
+Update the text content of a message. Supports updating either the entire message text or a specific content part by index.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+<ParamField path="messageId" type="string" required>
+  The message ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="text" type="string" required>
+  New text content
+</ParamField>
+
+<ParamField body="model" type="string">
+  Model name (for token counting)
+</ParamField>
+
+<ParamField body="index" type="integer">
+  Content part index to update (optional, updates entire message if omitted)
+</ParamField>
+
+### Response
+
+Returns the updated message object.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid index or attempting to update non-text content
+- **404 Not Found**: Message not found
+- **500 Internal Server Error**: Update failed
+
+---
+
+## Update Message Feedback
+
+<CodeGroup>
+```bash PUT /api/messages/:conversationId/:messageId/feedback
+curl -X PUT "https://your-domain.com/api/messages/<conversation_id>/<message_id>/feedback" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "feedback": {
+      "rating": 1,
+      "comment": "Great response!"
+    }
+  }'
+```
+</CodeGroup>
+
+Add or update feedback on a message.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+<ParamField path="messageId" type="string" required>
+  The message ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="feedback" type="object">
+  Feedback object (set to `null` to clear feedback)
+  <Expandable title="Feedback object">
+    <ParamField body="feedback.rating" type="integer">
+      Rating value (e.g., 1 for positive, -1 for negative)
+    </ParamField>
+    <ParamField body="feedback.comment" type="string">
+      Optional feedback comment
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Response
+
+<ResponseField name="messageId" type="string">
+  The message ID
+</ResponseField>
+
+<ResponseField name="conversationId" type="string">
+  The conversation ID
+</ResponseField>
+
+<ResponseField name="feedback" type="object | null">
+  Updated feedback object
+</ResponseField>
+
+---
+
+## Delete Message
+
+<CodeGroup>
+```bash DELETE /api/messages/:conversationId/:messageId
+curl -X DELETE "https://your-domain.com/api/messages/<conversation_id>/<message_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Delete a specific message.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+<ParamField path="messageId" type="string" required>
+  The message ID
+</ParamField>
+
+### Response
+
+Returns **204 No Content** on success.
+
+---
+
+## Branch Message (Parallel Agents)
+
+<CodeGroup>
+```bash POST /api/messages/branch
+curl -X POST "https://your-domain.com/api/messages/branch" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messageId": "<message_id>",
+    "agentId": "<agent_id>"
+  }'
+```
+</CodeGroup>
+
+Create a new branch message from a specific agent's content in a parallel response message. Only works with non-user messages that have content attributions.
+
+### Request Body
+
+<ParamField body="messageId" type="string" required>
+  Source message ID
+</ParamField>
+
+<ParamField body="agentId" type="string" required>
+  Agent ID to filter content by
+</ParamField>
+
+### Response
+
+Returns the newly created branch message with content filtered to only include parts from the specified agent.
+
+### Error Responses
+
+- **400 Bad Request**: Missing parameters, attempting to branch from user message, or no content found for agent
+- **404 Not Found**: Source message not found
+- **500 Internal Server Error**: Branch creation failed
+
+---
+
+## Edit Artifact
+
+<CodeGroup>
+```bash POST /api/messages/artifact/:messageId
+curl -X POST "https://your-domain.com/api/messages/artifact/<message_id>" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "index": 0,
+    "original": "original artifact content",
+    "updated": "updated artifact content"
+  }'
+```
+</CodeGroup>
+
+Edit artifact content within a message (e.g., code blocks, formatted content).
+
+### Path Parameters
+
+<ParamField path="messageId" type="string" required>
+  The message ID containing the artifact
+</ParamField>
+
+### Request Body
+
+<ParamField body="index" type="integer" required>
+  Artifact index (0-based)
+</ParamField>
+
+<ParamField body="original" type="string" required>
+  Original artifact content to replace
+</ParamField>
+
+<ParamField body="updated" type="string" required>
+  New artifact content
+</ParamField>
+
+### Response
+
+<ResponseField name="conversationId" type="string">
+  The conversation ID
+</ResponseField>
+
+<ResponseField name="content" type="array">
+  Updated message content array
+</ResponseField>
+
+<ResponseField name="text" type="string">
+  Updated message text
+</ResponseField>
+
+### Error Responses
+
+- **400 Bad Request**: Invalid parameters or artifact not found
+- **404 Not Found**: Message not found
+- **500 Internal Server Error**: Update failed
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or unsupported operation |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 403 | Forbidden - User lacks permission to access the conversation |
+| 404 | Not Found - Message or conversation does not exist |
+| 500 | Internal Server Error - Server-side error occurred |

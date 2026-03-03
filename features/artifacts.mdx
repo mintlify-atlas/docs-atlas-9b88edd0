@@ -1,0 +1,333 @@
+---
+title: Artifacts
+description: Create and preview interactive code, visualizations, and documents in real-time
+---
+
+## Overview
+
+Artifacts in LibreChat allow AI models to generate interactive content that renders in a dedicated preview panel. This includes code snippets, HTML pages, React components, Mermaid diagrams, and more.
+
+## What Are Artifacts?
+
+Artifacts are structured outputs that can be:
+
+- **Previewed**: Rendered in a side panel during the conversation
+- **Edited**: Modified directly in the interface
+- **Versioned**: Track changes across iterations
+- **Downloaded**: Exported for use outside LibreChat
+
+Think of artifacts as interactive "deliverables" from your AI conversation.
+
+## Supported Artifact Types
+
+<Tabs>
+  <Tab title="Code">
+    Syntax-highlighted code in multiple languages:
+    
+    - Python
+    - JavaScript/TypeScript
+    - HTML/CSS
+    - React/JSX
+    - And more...
+    
+    ```python
+    # Example Python artifact
+    def fibonacci(n):
+        if n <= 1:
+            return n
+        return fibonacci(n-1) + fibonacci(n-2)
+    ```
+  </Tab>
+  
+  <Tab title="HTML/Web Pages">
+    Interactive HTML with CSS and JavaScript:
+    
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial; }
+        .card { padding: 20px; border: 1px solid #ddd; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>Interactive Demo</h1>
+        <button onclick="alert('Hello!')">Click Me</button>
+      </div>
+    </body>
+    </html>
+    ```
+  </Tab>
+  
+  <Tab title="Mermaid Diagrams">
+    Create flowcharts, sequence diagrams, and more:
+    
+    ```mermaid
+    graph TD
+        A[Start] --> B{Is it working?}
+        B -->|Yes| C[Great!]
+        B -->|No| D[Debug]
+        D --> B
+    ```
+  </Tab>
+  
+  <Tab title="React Components">
+    Interactive React components with state:
+    
+    ```jsx
+    function Counter() {
+      const [count, setCount] = React.useState(0);
+      return (
+        <div>
+          <p>Count: {count}</p>
+          <button onClick={() => setCount(count + 1)}>
+            Increment
+          </button>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Creating Artifacts
+
+AI models automatically create artifacts when generating appropriate content. You can also request them explicitly:
+
+<Tabs>
+  <Tab title="Implicit Creation">
+    ```
+    Create a calculator with HTML, CSS, and JavaScript.
+    ```
+    
+    The AI will automatically create an artifact with the interactive calculator.
+  </Tab>
+  
+  <Tab title="Explicit Request">
+    ```
+    Generate a Python function to sort a list of dictionaries.
+    Create it as an artifact so I can copy the code.
+    ```
+  </Tab>
+</Tabs>
+
+## Artifact Syntax
+
+AI models use a special directive syntax to create artifacts:
+
+```markdown
+:::artifact{title="My Calculator" type="html" identifier="calc-v1"}
+<!DOCTYPE html>
+<html>...
+:::
+```
+
+<Accordion title="Artifact Attributes">
+  - **title**: Display name of the artifact
+  - **type**: Content type (html, python, javascript, react, mermaid, etc.)
+  - **identifier**: Unique ID for tracking versions
+</Accordion>
+
+## Enabling Artifacts
+
+Artifacts must be enabled for agents:
+
+<Steps>
+  <Step title="Configure in librechat.yaml">
+    ```yaml
+    # librechat.yaml
+    endpoints:
+      agents:
+        capabilities:
+          - artifacts  # Enable artifact generation
+    ```
+  </Step>
+  
+  <Step title="Enable in Agent Builder">
+    When creating or editing an agent:
+    
+    1. Open the agent configuration
+    2. Toggle **Artifacts** in the capabilities section
+    3. Save the agent
+  </Step>
+</Steps>
+
+<Note>
+  Artifacts work best with models that support structured output, like GPT-4, Claude, and Gemini.
+</Note>
+
+## Artifact Panel Features
+
+### Preview Mode
+
+View the rendered output of your artifact:
+
+- **HTML**: Fully interactive web pages
+- **Code**: Syntax-highlighted with line numbers
+- **Mermaid**: Rendered diagrams
+- **React**: Live component previews
+
+### Edit Mode
+
+Modify artifacts directly in the code editor:
+
+- Syntax highlighting
+- Auto-completion
+- Line numbers
+- Real-time preview updates
+
+### Version Control
+
+Track changes across iterations:
+
+```typescript
+// Artifact versioning
+{
+  id: "calculator_html_calc-v1",
+  identifier: "calc-v1",
+  index: 1,
+  lastUpdateTime: 1709502123456
+}
+```
+
+<Tip>
+  Each time the AI modifies an artifact, a new version is created. Use the version panel to compare or revert changes.
+</Tip>
+
+### Download Artifacts
+
+Export artifacts for use outside LibreChat:
+
+- Click the download icon in the artifact panel
+- Choose file format (HTML, Python, etc.)
+- Save to your local machine
+
+## Example Use Cases
+
+<Accordion title="Data Visualization">
+  ```
+  Create an interactive bar chart showing sales by quarter.
+  Use this data: Q1: $45k, Q2: $52k, Q3: $48k, Q4: $61k
+  ```
+  
+  The AI creates an HTML artifact with Chart.js or D3.js visualization.
+</Accordion>
+
+<Accordion title="Code Generators">
+  ```
+  Generate a Python class for managing a todo list with
+  methods to add, remove, and list items.
+  ```
+  
+  Returns a formatted Python code artifact ready to copy.
+</Accordion>
+
+<Accordion title="UI Prototypes">
+  ```
+  Create a landing page for a SaaS product with:
+  - Hero section with CTA
+  - Feature grid (3 columns)
+  - Pricing table
+  - Footer with links
+  ```
+  
+  Generates a complete HTML/CSS artifact you can iterate on.
+</Accordion>
+
+<Accordion title="Documentation Diagrams">
+  ```
+  Create a Mermaid sequence diagram showing the OAuth flow
+  between client, auth server, and resource server.
+  ```
+  
+  Produces a Mermaid artifact rendered as a diagram.
+</Accordion>
+
+## Advanced Features
+
+### Artifact Context
+
+Artifacts maintain context across the conversation:
+
+```typescript
+// Artifact tracking
+const artifact = {
+  messageId: "msg-123",
+  index: 2,  // 2nd artifact in this message
+  content: "...",
+  lastUpdateTime: Date.now()
+}
+```
+
+### Throttled Updates
+
+Artifacts update smoothly during streaming:
+
+```typescript
+// Updates throttled to 25ms for performance
+throttle(updateFn, 25)
+```
+
+### Route-Specific Rendering
+
+Artifacts only render on the chat route:
+
+```typescript
+if (!isArtifactRoute(location.pathname)) {
+  // Skip rendering in other contexts
+}
+```
+
+## Best Practices
+
+<Tip>
+  - **Be specific**: Clearly describe what you want the artifact to do
+  - **Iterate**: Refine artifacts across multiple messages
+  - **Test previews**: Use preview mode to verify functionality
+  - **Download early**: Save artifacts you want to keep
+  - **Version awareness**: Track which version you're working with
+</Tip>
+
+## Configuration Reference
+
+```yaml
+# librechat.yaml
+endpoints:
+  agents:
+    capabilities:
+      - artifacts
+
+# File size limits for artifact downloads
+fileConfig:
+  imageGeneration:
+    percentage: 100  # Or fixed px: 1024
+```
+
+## Troubleshooting
+
+<Accordion title="Artifact not rendering">
+  - Check that artifacts are enabled for the agent
+  - Verify the artifact type is supported
+  - Look for syntax errors in the generated code
+  - Check browser console for errors
+</Accordion>
+
+<Accordion title="Preview shows blank page">
+  - HTML artifacts may have JavaScript errors
+  - Check browser console
+  - Try editing the artifact to fix issues
+</Accordion>
+
+<Accordion title="Download button not working">
+  - Ensure the artifact has fully loaded
+  - Check file size limits in configuration
+  - Try a different browser
+</Accordion>
+
+## Related Features
+
+- [Agents](/features/agents)
+- [Code Interpreter](/features/code-interpreter)
+- [Multimodal Chat](/features/multimodal-chat)

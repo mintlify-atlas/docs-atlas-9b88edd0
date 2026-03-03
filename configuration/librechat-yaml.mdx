@@ -1,0 +1,473 @@
+---
+title: librechat.yaml Configuration
+description: Complete guide to the librechat.yaml configuration file
+---
+
+The `librechat.yaml` file is the primary configuration file for LibreChat. It allows you to customize endpoints, interface settings, file storage, and more.
+
+## Configuration Version
+
+<ParamField path="version" type="string" required>
+  Configuration file version
+  
+  ```yaml
+  version: 1.3.4
+  ```
+</ParamField>
+
+## Cache Settings
+
+<ParamField path="cache" type="boolean" default="false">
+  Enable response caching
+  
+  ```yaml
+  cache: true
+  ```
+</ParamField>
+
+## Interface Configuration
+
+Customize the LibreChat user interface with these settings.
+
+```yaml
+interface:
+  customWelcome: 'Welcome to LibreChat! Enjoy your experience.'
+  fileSearch: true
+  endpointsMenu: true
+  modelSelect: true
+  parameters: true
+  sidePanel: true
+  presets: true
+  bookmarks: true
+  multiConvo: true
+```
+
+### Interface Options
+
+<ParamField path="interface.customWelcome" type="string">
+  Custom welcome message displayed to users
+</ParamField>
+
+<ParamField path="interface.fileSearch" type="boolean" default="true">
+  Enable file search as a chat area selection
+  
+  <Note>This does not disable the Agents File Search Capability. See Agents endpoint configuration for that.</Note>
+</ParamField>
+
+<ParamField path="interface.endpointsMenu" type="boolean" default="true">
+  Show endpoints selection menu
+</ParamField>
+
+<ParamField path="interface.modelSelect" type="boolean" default="true">
+  Enable model selection dropdown
+</ParamField>
+
+<ParamField path="interface.parameters" type="boolean" default="true">
+  Show model parameters controls
+</ParamField>
+
+<ParamField path="interface.sidePanel" type="boolean" default="true">
+  Enable side panel
+</ParamField>
+
+### Privacy Policy & Terms of Service
+
+```yaml
+interface:
+  privacyPolicy:
+    externalUrl: 'https://librechat.ai/privacy-policy'
+    openNewTab: true
+  termsOfService:
+    externalUrl: 'https://librechat.ai/tos'
+    openNewTab: true
+    modalAcceptance: true
+    modalTitle: 'Terms of Service for LibreChat'
+    modalContent: |
+      # Terms and Conditions
+      Your terms content here...
+```
+
+<ParamField path="interface.privacyPolicy.externalUrl" type="string">
+  URL to privacy policy page
+</ParamField>
+
+<ParamField path="interface.privacyPolicy.openNewTab" type="boolean">
+  Open privacy policy in new tab
+</ParamField>
+
+<ParamField path="interface.termsOfService.modalAcceptance" type="boolean">
+  Require users to accept terms via modal
+</ParamField>
+
+### Prompts Configuration
+
+```yaml
+interface:
+  prompts:
+    use: true
+    create: true
+    share: false
+    public: false
+```
+
+<ParamField path="interface.prompts.use" type="boolean" default="true">
+  Allow users to use prompts
+</ParamField>
+
+<ParamField path="interface.prompts.create" type="boolean" default="true">
+  Allow users to create prompts
+</ParamField>
+
+<ParamField path="interface.prompts.share" type="boolean" default="false">
+  Allow users to share prompts with others
+</ParamField>
+
+<ParamField path="interface.prompts.public" type="boolean" default="false">
+  Allow users to make prompts public
+</ParamField>
+
+### Agents Configuration
+
+```yaml
+interface:
+  agents:
+    use: true
+    create: true
+    share: false
+    public: false
+```
+
+<ParamField path="interface.agents.use" type="boolean" default="true">
+  Allow users to use agents
+</ParamField>
+
+<ParamField path="interface.agents.create" type="boolean" default="true">
+  Allow users to create agents
+</ParamField>
+
+<ParamField path="interface.agents.share" type="boolean" default="false">
+  Allow users to share agents
+</ParamField>
+
+<ParamField path="interface.agents.public" type="boolean" default="false">
+  Allow users to make agents public
+</ParamField>
+
+### People Picker
+
+```yaml
+interface:
+  peoplePicker:
+    users: true
+    groups: true
+    roles: true
+```
+
+<ParamField path="interface.peoplePicker.users" type="boolean" default="true">
+  Enable user selection in people picker
+</ParamField>
+
+<ParamField path="interface.peoplePicker.groups" type="boolean" default="true">
+  Enable group selection in people picker
+</ParamField>
+
+<ParamField path="interface.peoplePicker.roles" type="boolean" default="true">
+  Enable role selection in people picker
+</ParamField>
+
+## Registration Settings
+
+```yaml
+registration:
+  socialLogins: ['github', 'google', 'discord', 'openid', 'facebook', 'apple', 'saml']
+  allowedDomains:
+    - "gmail.com"
+    - "company.com"
+```
+
+<ParamField path="registration.socialLogins" type="array">
+  List of enabled social login providers
+  
+  Available options: `github`, `google`, `discord`, `openid`, `facebook`, `apple`, `saml`
+</ParamField>
+
+<ParamField path="registration.allowedDomains" type="array">
+  Email domains allowed for registration
+  
+  <Note>Leave empty to allow all domains</Note>
+</ParamField>
+
+## Balance & Transactions
+
+```yaml
+balance:
+  enabled: false
+  startBalance: 20000
+  autoRefillEnabled: false
+  refillIntervalValue: 30
+  refillIntervalUnit: 'days'
+  refillAmount: 10000
+```
+
+<ParamField path="balance.enabled" type="boolean" default="false">
+  Enable token balance system
+</ParamField>
+
+<ParamField path="balance.startBalance" type="number" default="20000">
+  Initial token balance for new users
+</ParamField>
+
+<ParamField path="balance.autoRefillEnabled" type="boolean" default="false">
+  Enable automatic balance refill
+</ParamField>
+
+<ParamField path="balance.refillIntervalValue" type="number">
+  Refill interval value (e.g., 30)
+</ParamField>
+
+<ParamField path="balance.refillIntervalUnit" type="string">
+  Refill interval unit: `days`, `hours`, or `minutes`
+</ParamField>
+
+```yaml
+transactions:
+  enabled: false
+```
+
+<ParamField path="transactions.enabled" type="boolean" default="true">
+  Save transaction records to database
+  
+  <Note>If balance.enabled is true, transactions are always enabled</Note>
+</ParamField>
+
+## Rate Limits
+
+```yaml
+rateLimits:
+  fileUploads:
+    ipMax: 100
+    ipWindowInMinutes: 60
+    userMax: 50
+    userWindowInMinutes: 60
+  conversationsImport:
+    ipMax: 100
+    ipWindowInMinutes: 60
+    userMax: 50
+    userWindowInMinutes: 60
+```
+
+<ParamField path="rateLimits.fileUploads.ipMax" type="number" default="100">
+  Maximum file uploads per IP per window
+</ParamField>
+
+<ParamField path="rateLimits.fileUploads.userMax" type="number" default="50">
+  Maximum file uploads per user per window
+</ParamField>
+
+## Agent Actions Domain Restrictions
+
+```yaml
+actions:
+  allowedDomains:
+    - 'swapi.dev'
+    - 'librechat.ai'
+    - 'google.com'
+    - 'http://10.225.26.25:7894'  # Internal IP with protocol/port
+```
+
+<ParamField path="actions.allowedDomains" type="array">
+  Domains allowed for Agent Actions OpenAPI specs
+  
+  <Warning>
+  If not configured, SSRF targets are blocked (localhost, private IPs, .internal/.local TLDs).
+  To allow internal targets, you MUST explicitly add them.
+  </Warning>
+  
+  Supports:
+  - Wildcards: `*.example.com`
+  - Protocol/port restrictions: `https://api.example.com:8443`
+</ParamField>
+
+## MCP Settings
+
+```yaml
+mcpSettings:
+  allowedDomains:
+    - 'host.docker.internal'
+    - 'localhost'
+    - '*.example.com'
+    - 'https://secure.api.com'
+```
+
+<ParamField path="mcpSettings.allowedDomains" type="array">
+  Domains allowed for MCP remote transports (SSE, WebSocket, HTTP)
+  
+  <Warning>
+  Required for Docker setups to allow `host.docker.internal`
+  </Warning>
+</ParamField>
+
+## MCP Servers
+
+```yaml
+mcpServers:
+  everything:
+    url: http://localhost:3001/sse
+    timeout: 60000
+  puppeteer:
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-puppeteer"
+    timeout: 300000
+  filesystem:
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - /home/user/LibreChat/
+    iconPath: /home/user/LibreChat/client/public/assets/logo.svg
+```
+
+<ParamField path="mcpServers.<name>.type" type="string">
+  MCP server transport type: `sse`, `stdio`, `websocket`, or `http`
+  
+  <Note>Can be omitted, defaults to `sse`</Note>
+</ParamField>
+
+<ParamField path="mcpServers.<name>.url" type="string">
+  Server URL (for SSE/WebSocket/HTTP transports)
+</ParamField>
+
+<ParamField path="mcpServers.<name>.command" type="string">
+  Command to run (for stdio transport)
+</ParamField>
+
+<ParamField path="mcpServers.<name>.args" type="array">
+  Command arguments (for stdio transport)
+</ParamField>
+
+<ParamField path="mcpServers.<name>.timeout" type="number" default="60000">
+  Timeout in milliseconds
+</ParamField>
+
+<ParamField path="mcpServers.<name>.iconPath" type="string">
+  Path to custom icon for the server
+</ParamField>
+
+## Speech Configuration
+
+```yaml
+speech:
+  tts:
+    openai:
+      url: ''
+      apiKey: '${TTS_API_KEY}'
+      model: ''
+      voices: ['']
+  stt:
+    openai:
+      url: ''
+      apiKey: '${STT_API_KEY}'
+      model: ''
+```
+
+<ParamField path="speech.tts.openai" type="object">
+  Text-to-Speech configuration using OpenAI
+</ParamField>
+
+<ParamField path="speech.stt.openai" type="object">
+  Speech-to-Text configuration using OpenAI
+</ParamField>
+
+## Memory Configuration
+
+```yaml
+memory:
+  disabled: false
+  validKeys: ["preferences", "work_info", "personal_info", "skills", "interests", "context"]
+  tokenLimit: 10000
+  personalize: true
+  agent:
+    id: "your-memory-agent-id"
+    # OR define inline:
+    # provider: "openai"
+    # model: "gpt-4o-mini"
+    # instructions: "You are a memory management assistant."
+    # model_parameters:
+    #   temperature: 0.1
+```
+
+<ParamField path="memory.disabled" type="boolean" default="false">
+  Disable memory functionality
+</ParamField>
+
+<ParamField path="memory.validKeys" type="array">
+  Restrict memory keys to specific values
+</ParamField>
+
+<ParamField path="memory.tokenLimit" type="number" default="10000">
+  Maximum token limit for memory storage
+</ParamField>
+
+<ParamField path="memory.personalize" type="boolean" default="true">
+  Enable personalization features (Personalization tab in settings)
+</ParamField>
+
+<ParamField path="memory.agent" type="object">
+  Memory agent configuration - use existing agent by ID or define inline
+</ParamField>
+
+## Web Search Configuration
+
+```yaml
+webSearch:
+  # Reranking
+  jinaApiKey: '${JINA_API_KEY}'
+  jinaApiUrl: '${JINA_API_URL}'
+  cohereApiKey: '${COHERE_API_KEY}'
+  
+  # Search providers
+  serperApiKey: '${SERPER_API_KEY}'
+  searxngInstanceUrl: '${SEARXNG_INSTANCE_URL}'
+  searxngApiKey: '${SEARXNG_API_KEY}'
+  
+  # Content scrapers
+  firecrawlApiKey: '${FIRECRAWL_API_KEY}'
+  firecrawlApiUrl: '${FIRECRAWL_API_URL}'
+```
+
+<ParamField path="webSearch.jinaApiKey" type="string">
+  Jina API key for reranking
+</ParamField>
+
+<ParamField path="webSearch.cohereApiKey" type="string">
+  Cohere API key for reranking
+</ParamField>
+
+<ParamField path="webSearch.serperApiKey" type="string">
+  Serper API key for search
+</ParamField>
+
+<ParamField path="webSearch.firecrawlApiKey" type="string">
+  Firecrawl API key for content scraping
+</ParamField>
+
+## Cloudflare Turnstile
+
+```yaml
+turnstile:
+  siteKey: "your-site-key-here"
+  options:
+    language: "auto"
+    size: "normal"
+```
+
+<ParamField path="turnstile.siteKey" type="string">
+  Cloudflare Turnstile site key
+</ParamField>
+
+<ParamField path="turnstile.options.size" type="string">
+  Widget size: `normal`, `compact`, `flexible`, or `invisible`
+</ParamField>

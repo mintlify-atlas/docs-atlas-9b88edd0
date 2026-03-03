@@ -1,0 +1,506 @@
+---
+title: Agents API
+description: API endpoints for managing AI agents and agent-related resources
+---
+
+The Agents API allows you to create, retrieve, update, delete, and manage AI agents, including their configurations, tools, actions, avatars, and version history.
+
+## Authentication
+
+All endpoints require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+## Permissions
+
+Agent operations require specific permissions:
+- **VIEW**: Read basic agent information
+- **EDIT**: Modify agent configuration
+- **CREATE**: Create new agents
+- **DELETE**: Remove agents
+- **SHARE**: Share agents with projects/groups
+
+---
+
+## List Agents
+
+<CodeGroup>
+```bash GET /api/agents
+curl -X GET "https://your-domain.com/api/agents?limit=20&page=1" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve a paginated list of agents accessible to the authenticated user.
+
+### Query Parameters
+
+<ParamField query="limit" type="integer" default="20">
+  Number of agents per page
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search query for agent name or description
+</ParamField>
+
+<ParamField query="category" type="string">
+  Filter by agent category
+</ParamField>
+
+### Response
+
+<ResponseField name="agents" type="array">
+  Array of agent objects
+  <Expandable title="Agent object">
+    <ResponseField name="id" type="string">
+      Unique agent identifier
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Agent name
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Agent description
+    </ResponseField>
+    <ResponseField name="avatar" type="object">
+      Avatar configuration with URL and source
+    </ResponseField>
+    <ResponseField name="author" type="string">
+      User ID of the agent creator
+    </ResponseField>
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of agents
+</ResponseField>
+
+<ResponseField name="pages" type="integer">
+  Total number of pages
+</ResponseField>
+
+---
+
+## Get Agent Categories
+
+<CodeGroup>
+```bash GET /api/agents/categories
+curl -X GET "https://your-domain.com/api/agents/categories" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve all agent categories with counts.
+
+### Response
+
+<ResponseField name="categories" type="array">
+  Array of category objects with name and count
+</ResponseField>
+
+---
+
+## Get Agent (Basic Info)
+
+<CodeGroup>
+```bash GET /api/agents/:id
+curl -X GET "https://your-domain.com/api/agents/<agent_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve basic agent information (requires VIEW permission). Returns safe, non-sensitive data suitable for viewing purposes.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Response
+
+Returns an agent object with basic information excluding sensitive configuration details.
+
+---
+
+## Get Agent (Full Details)
+
+<CodeGroup>
+```bash GET /api/agents/:id/expanded
+curl -X GET "https://your-domain.com/api/agents/<agent_id>/expanded" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve complete agent details including sensitive configuration (requires EDIT permission). Returns full agent data for editing/configuration purposes.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  Unique agent identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Agent name
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Agent description
+</ResponseField>
+
+<ResponseField name="instructions" type="string">
+  System instructions/prompt for the agent
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  Model identifier (e.g., "gpt-4", "claude-3-opus")
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  Provider name (e.g., "openAI", "anthropic")
+</ResponseField>
+
+<ResponseField name="tools" type="array">
+  Array of enabled tool configurations
+</ResponseField>
+
+<ResponseField name="tool_resources" type="object">
+  Tool-specific resources like file_search file IDs
+</ResponseField>
+
+<ResponseField name="version" type="integer">
+  Current version number
+</ResponseField>
+
+<ResponseField name="version_history" type="array">
+  Array of previous versions
+</ResponseField>
+
+---
+
+## Create Agent
+
+<CodeGroup>
+```bash POST /api/agents
+curl -X POST "https://your-domain.com/api/agents" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Research Assistant",
+    "description": "Helps with research tasks",
+    "instructions": "You are a helpful research assistant.",
+    "model": "gpt-4",
+    "provider": "openAI",
+    "tools": ["web_search", "code_interpreter"]
+  }'
+```
+</CodeGroup>
+
+Create a new agent (requires CREATE permission).
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Agent name (max 256 characters)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Agent description
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  System instructions/prompt for the agent
+</ParamField>
+
+<ParamField body="model" type="string" required>
+  Model identifier
+</ParamField>
+
+<ParamField body="provider" type="string" required>
+  Provider name (e.g., "openAI", "anthropic", "bedrock")
+</ParamField>
+
+<ParamField body="tools" type="array">
+  Array of tool identifiers to enable
+</ParamField>
+
+<ParamField body="tool_resources" type="object">
+  Tool-specific resources
+  <Expandable title="Tool resources">
+    <ParamField body="tool_resources.file_search" type="object">
+      <ParamField body="file_ids" type="array">
+        Array of file IDs for file search
+      </ParamField>
+    </ParamField>
+    <ParamField body="tool_resources.code_interpreter" type="object">
+      <ParamField body="file_ids" type="array">
+        Array of file IDs for code interpreter
+      </ParamField>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="projectIds" type="array">
+  Array of project IDs to share the agent with
+</ParamField>
+
+### Response
+
+Returns the created agent object with status **201 Created**.
+
+---
+
+## Update Agent
+
+<CodeGroup>
+```bash PATCH /api/agents/:id
+curl -X PATCH "https://your-domain.com/api/agents/<agent_id>" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Research Assistant",
+    "instructions": "Updated instructions"
+  }'
+```
+</CodeGroup>
+
+Update an existing agent (requires EDIT permission).
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Request Body
+
+Accepts partial agent updates. All fields are optional.
+
+<ParamField body="name" type="string">
+  Updated agent name
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  Updated instructions
+</ParamField>
+
+<ParamField body="model" type="string">
+  Updated model
+</ParamField>
+
+<ParamField body="tools" type="array">
+  Updated tools array
+</ParamField>
+
+<ParamField body="projectIds" type="array">
+  Add agent to projects (requires SHARE permission)
+</ParamField>
+
+<ParamField body="removeProjectIds" type="array">
+  Remove agent from projects (requires SHARE permission)
+</ParamField>
+
+### Response
+
+Returns the updated agent object.
+
+---
+
+## Duplicate Agent
+
+<CodeGroup>
+```bash POST /api/agents/:id/duplicate
+curl -X POST "https://your-domain.com/api/agents/<agent_id>/duplicate" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Create a duplicate of an existing agent (requires VIEW permission on source, CREATE permission to duplicate).
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID to duplicate
+</ParamField>
+
+### Response
+
+Returns the newly created duplicate agent with status **201 Created**.
+
+---
+
+## Delete Agent
+
+<CodeGroup>
+```bash DELETE /api/agents/:id
+curl -X DELETE "https://your-domain.com/api/agents/<agent_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Delete an agent (requires DELETE permission).
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID to delete
+</ParamField>
+
+### Response
+
+Returns the deleted agent object with status **200 OK**.
+
+---
+
+## Revert Agent Version
+
+<CodeGroup>
+```bash POST /api/agents/:id/revert
+curl -X POST "https://your-domain.com/api/agents/<agent_id>/revert" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version_index": 2
+  }'
+```
+</CodeGroup>
+
+Revert an agent to a previous version (requires EDIT permission).
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="version_index" type="integer" required>
+  Index of the version to revert to (0-based)
+</ParamField>
+
+### Response
+
+Returns the agent object with the reverted configuration.
+
+---
+
+## Upload Agent Avatar
+
+<CodeGroup>
+```bash POST /api/files/images/agents/:agent_id/avatar
+curl -X POST "https://your-domain.com/api/files/images/agents/<agent_id>/avatar" \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@avatar.png" \
+  -F "metadata={}"
+```
+</CodeGroup>
+
+Upload or update an avatar image for an agent (requires EDIT permission).
+
+### Path Parameters
+
+<ParamField path="agent_id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Request
+
+Multipart form data with file and optional metadata.
+
+<ParamField body="file" type="file" required>
+  Avatar image file (PNG, JPG, WEBP, GIF)
+</ParamField>
+
+<ParamField body="metadata" type="string">
+  JSON string with optional metadata
+</ParamField>
+
+### Response
+
+<ResponseField name="url" type="string">
+  URL of the uploaded avatar
+</ResponseField>
+
+---
+
+## Get Available Tools
+
+<CodeGroup>
+```bash GET /api/agents/tools
+curl -X GET "https://your-domain.com/api/agents/tools" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve a list of available tools that can be enabled for agents.
+
+### Response
+
+<ResponseField name="tools" type="array">
+  Array of tool definitions
+  <Expandable title="Tool object">
+    <ResponseField name="tool_id" type="string">
+      Unique tool identifier
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Tool display name
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Tool description
+    </ResponseField>
+    <ResponseField name="authConfig" type="array">
+      Authentication configuration if required
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Agent Actions
+
+<CodeGroup>
+```bash GET /api/agents/actions
+curl -X GET "https://your-domain.com/api/agents/actions" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve custom actions (OpenAPI specs) available for agents.
+
+### Response
+
+Returns an array of action definitions with OpenAPI specifications.
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or malformed request |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 403 | Forbidden - Insufficient permissions for the operation |
+| 404 | Not Found - Agent does not exist |
+| 500 | Internal Server Error - Server-side error occurred |

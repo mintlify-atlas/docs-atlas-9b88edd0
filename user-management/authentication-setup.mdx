@@ -1,0 +1,410 @@
+---
+title: Authentication Setup
+description: Configure authentication strategies including OAuth2, LDAP, and email-based authentication for LibreChat
+---
+
+LibreChat supports multiple authentication strategies to accommodate various organizational requirements. This guide covers setup for local email authentication, OAuth2 providers, LDAP, OpenID Connect, and SAML.
+
+## Authentication Strategies Overview
+
+LibreChat implements authentication through Passport.js strategies located in `api/strategies/`. The following authentication methods are available:
+
+- **Local Strategy** (Email/Password)
+- **OAuth2 Providers** (Google, GitHub, Discord, Facebook, Apple)
+- **LDAP** (Lightweight Directory Access Protocol)
+- **OpenID Connect**
+- **SAML** (Security Assertion Markup Language)
+
+## Local Email/Password Authentication
+
+Local authentication is enabled by default and uses email/password credentials stored in MongoDB.
+
+### Configuration
+
+<Steps>
+  <Step title="Set JWT Secrets">
+    Generate secure JWT secrets for session management:
+
+    ```bash .env
+    JWT_SECRET=your-secure-random-secret-key
+    JWT_REFRESH_SECRET=your-secure-refresh-secret-key
+    ```
+
+    <Note>
+      Generate secure secrets using: `openssl rand -hex 32`
+    </Note>
+  </Step>
+
+  <Step title="Configure Session Expiry">
+    Set session and refresh token expiration times:
+
+    ```bash .env
+    SESSION_EXPIRY=1000 * 60 * 15  # 15 minutes
+    REFRESH_TOKEN_EXPIRY=(1000 * 60 * 60 * 24) * 7  # 7 days
+    ```
+  </Step>
+
+  <Step title="Email Verification Settings">
+    Configure email verification requirements:
+
+    ```bash .env
+    ALLOW_UNVERIFIED_EMAIL_LOGIN=false
+    ALLOW_PASSWORD_RESET=true
+    ```
+
+    <Warning>
+      When `ALLOW_UNVERIFIED_EMAIL_LOGIN=false`, users must verify their email before logging in. Ensure email service is configured.
+    </Warning>
+  </Step>
+
+  <Step title="Set Password Requirements">
+    Configure minimum password length:
+
+    ```bash .env
+    MIN_PASSWORD_LENGTH=8
+    ```
+  </Step>
+</Steps>
+
+### Local Strategy Implementation
+
+The local strategy (`api/strategies/localStrategy.js`) validates credentials and handles email verification:
+
+```javascript api/strategies/localStrategy.js
+const { Strategy: PassportLocalStrategy } = require('passport-local');
+
+module.exports = () =>
+  new PassportLocalStrategy(
+    {
+      usernameField: 'email',
+      passwordField: 'password',
+      session: false,
+      passReqToCallback: true,
+    },
+    passportLogin,
+  );
+```
+
+## OAuth2 Authentication
+
+LibreChat supports multiple OAuth2 providers for social login.
+
+### Enable Social Login
+
+```bash .env
+ALLOW_SOCIAL_LOGIN=true
+ALLOW_SOCIAL_REGISTRATION=true
+```
+
+### Google OAuth2
+
+<Steps>
+  <Step title="Create Google OAuth Credentials">
+    1. Go to [Google Cloud Console](https://console.cloud.google.com)
+    2. Create a new project or select an existing one
+    3. Navigate to **APIs & Services > Credentials**
+    4. Click **Create Credentials > OAuth 2.0 Client ID**
+    5. Configure the consent screen
+    6. Add authorized redirect URI: `http://your-domain:3080/oauth/google/callback`
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    ```bash .env
+    GOOGLE_CLIENT_ID=your-google-client-id
+    GOOGLE_CLIENT_SECRET=your-google-client-secret
+    GOOGLE_CALLBACK_URL=/oauth/google/callback
+    DOMAIN_SERVER=http://localhost:3080
+    ```
+  </Step>
+</Steps>
+
+### GitHub OAuth2
+
+<Steps>
+  <Step title="Register GitHub OAuth App">
+    1. Go to GitHub Settings > Developer settings > OAuth Apps
+    2. Click **New OAuth App**
+    3. Set Authorization callback URL: `http://your-domain:3080/oauth/github/callback`
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    ```bash .env
+    GITHUB_CLIENT_ID=your-github-client-id
+    GITHUB_CLIENT_SECRET=your-github-client-secret
+    GITHUB_CALLBACK_URL=/oauth/github/callback
+    ```
+
+    For GitHub Enterprise:
+    ```bash .env
+    GITHUB_ENTERPRISE_BASE_URL=https://github.your-company.com
+    GITHUB_ENTERPRISE_USER_AGENT=LibreChat
+    ```
+  </Step>
+</Steps>
+
+### Discord OAuth2
+
+```bash .env
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
+DISCORD_CALLBACK_URL=/oauth/discord/callback
+```
+
+### Facebook OAuth2
+
+```bash .env
+FACEBOOK_CLIENT_ID=your-facebook-app-id
+FACEBOOK_CLIENT_SECRET=your-facebook-app-secret
+FACEBOOK_CALLBACK_URL=/oauth/facebook/callback
+```
+
+### Apple OAuth2
+
+```bash .env
+APPLE_CLIENT_ID=your-apple-service-id
+APPLE_TEAM_ID=your-apple-team-id
+APPLE_KEY_ID=your-apple-key-id
+APPLE_PRIVATE_KEY_PATH=/path/to/private-key.p8
+APPLE_CALLBACK_URL=/oauth/apple/callback
+```
+
+## LDAP Authentication
+
+LDAP authentication enables integration with Active Directory or other LDAP servers.
+
+### Prerequisites
+
+- Access to an LDAP server
+- LDAP bind credentials (optional, for search operations)
+- User search base DN
+
+### Configuration
+
+<Steps>
+  <Step title="Set LDAP Server URL">
+    ```bash .env
+    LDAP_URL=ldap://ldap.example.com:389
+    # or for LDAPS
+    LDAP_URL=ldaps://ldap.example.com:636
+    ```
+  </Step>
+
+  <Step title="Configure Bind Credentials">
+    Set the bind DN and credentials for search operations:
+
+    ```bash .env
+    LDAP_BIND_DN=cn=admin,dc=example,dc=com
+    LDAP_BIND_CREDENTIALS=your-ldap-password
+    ```
+
+    <Note>
+      If your LDAP server allows anonymous bind, these can be omitted.
+    </Note>
+  </Step>
+
+  <Step title="Set User Search Base">
+    Define where to search for users:
+
+    ```bash .env
+    LDAP_USER_SEARCH_BASE=ou=users,dc=example,dc=com
+    LDAP_SEARCH_FILTER=mail={{username}}
+    ```
+
+    Common search filters:
+    - `mail={{username}}` - Search by email
+    - `uid={{username}}` - Search by UID
+    - `sAMAccountName={{username}}` - Search by Windows username
+  </Step>
+
+  <Step title="Configure Attribute Mapping">
+    Map LDAP attributes to user fields:
+
+    ```bash .env
+    LDAP_ID=uid
+    LDAP_USERNAME=uid
+    LDAP_EMAIL=mail
+    LDAP_FULL_NAME=cn,displayName
+    ```
+  </Step>
+
+  <Step title="SSL/TLS Configuration">
+    For secure LDAP connections:
+
+    ```bash .env
+    LDAP_CA_CERT_PATH=/path/to/ca-certificate.pem
+    LDAP_TLS_REJECT_UNAUTHORIZED=true
+    LDAP_STARTTLS=true
+    ```
+
+    <Warning>
+      Always use secure connections in production. Set `LDAP_TLS_REJECT_UNAUTHORIZED=false` only for testing with self-signed certificates.
+    </Warning>
+  </Step>
+
+  <Step title="Password Length Override">
+    LDAP servers handle their own password policies:
+
+    ```bash .env
+    MIN_PASSWORD_LENGTH=1
+    ```
+
+    <Note>
+      Setting this to 1 bypasses local password validation since LDAP handles authentication.
+    </Note>
+  </Step>
+</Steps>
+
+### LDAP Strategy Implementation
+
+The LDAP strategy (`api/strategies/ldapStrategy.js`) searches for users and creates/updates local records:
+
+```javascript api/strategies/ldapStrategy.js
+const ldapOptions = {
+  server: {
+    url: LDAP_URL,
+    bindDN: LDAP_BIND_DN,
+    bindCredentials: LDAP_BIND_CREDENTIALS,
+    searchBase: LDAP_USER_SEARCH_BASE,
+    searchFilter: LDAP_SEARCH_FILTER || 'mail={{username}}',
+    searchAttributes: [...new Set(searchAttributes)],
+  },
+  usernameField: 'email',
+  passwordField: 'password',
+};
+```
+
+### Active Directory Example
+
+```bash .env
+LDAP_URL=ldap://dc.company.com:389
+LDAP_BIND_DN=CN=Service Account,OU=Service Accounts,DC=company,DC=com
+LDAP_BIND_CREDENTIALS=service-password
+LDAP_USER_SEARCH_BASE=OU=Users,DC=company,DC=com
+LDAP_SEARCH_FILTER=sAMAccountName={{username}}
+LDAP_ID=objectGUID
+LDAP_USERNAME=sAMAccountName
+LDAP_EMAIL=mail
+LDAP_FULL_NAME=displayName
+```
+
+## OpenID Connect Authentication
+
+OpenID Connect provides authentication through identity providers like Keycloak, Okta, or Azure AD.
+
+### Configuration
+
+```bash .env
+OPENID_CLIENT_ID=your-client-id
+OPENID_CLIENT_SECRET=your-client-secret
+OPENID_ISSUER=https://your-idp.com/auth/realms/your-realm
+OPENID_SESSION_SECRET=your-session-secret
+OPENID_SCOPE="openid profile email"
+OPENID_CALLBACK_URL=/oauth/openid/callback
+```
+
+### Role-Based Access Control
+
+```bash .env
+# Require specific role for access
+OPENID_REQUIRED_ROLE=librechat-user
+OPENID_REQUIRED_ROLE_TOKEN_KIND=access_token
+OPENID_REQUIRED_ROLE_PARAMETER_PATH=realm_access.roles
+
+# Define admin role
+OPENID_ADMIN_ROLE=librechat-admin
+OPENID_ADMIN_ROLE_PARAMETER_PATH=realm_access.roles
+OPENID_ADMIN_ROLE_TOKEN_KIND=access_token
+```
+
+### Custom Claim Mapping
+
+```bash .env
+OPENID_USERNAME_CLAIM=preferred_username
+OPENID_NAME_CLAIM=name
+OPENID_EMAIL_CLAIM=email
+```
+
+### Azure AD / Entra ID Example
+
+```bash .env
+OPENID_CLIENT_ID=your-azure-app-id
+OPENID_CLIENT_SECRET=your-azure-client-secret
+OPENID_ISSUER=https://login.microsoftonline.com/your-tenant-id/v2.0
+OPENID_SCOPE="openid profile email"
+OPENID_EMAIL_CLAIM=upn
+OPENID_CALLBACK_URL=/oauth/openid/callback
+```
+
+## SAML Authentication
+
+SAML authentication enables single sign-on with enterprise identity providers.
+
+### Configuration
+
+The SAML strategy (`api/strategies/samlStrategy.js`) requires configuration through environment variables or a dedicated SAML configuration file.
+
+<Note>
+  SAML configuration is complex and typically requires coordination with your identity provider administrator.
+</Note>
+
+## Domain Restrictions
+
+Restrict user registration to specific email domains using `librechat.yaml`:
+
+```yaml librechat.yaml
+registration:
+  allowedDomains:
+    - company.com
+    - subsidiary.com
+```
+
+## Security Best Practices
+
+<Warning>
+  Follow these security guidelines for production deployments:
+</Warning>
+
+- Always use HTTPS in production (`DOMAIN_SERVER=https://...`)
+- Generate cryptographically secure JWT secrets
+- Enable email verification (`ALLOW_UNVERIFIED_EMAIL_LOGIN=false`)
+- Use strong password requirements (`MIN_PASSWORD_LENGTH=12` or higher)
+- Implement rate limiting for authentication endpoints
+- Regularly rotate JWT secrets and OAuth credentials
+- Use secure LDAP connections (LDAPS or StartTLS)
+- Restrict allowed email domains for registration
+- Enable two-factor authentication when available
+- Monitor authentication logs for suspicious activity
+
+## Troubleshooting
+
+### LDAP Connection Issues
+
+```bash
+# Test LDAP connection
+ldapsearch -x -H ldap://ldap.example.com -D "cn=admin,dc=example,dc=com" -w password -b "dc=example,dc=com"
+```
+
+### OAuth2 Redirect URI Mismatch
+
+Ensure `DOMAIN_SERVER` matches your OAuth2 provider's registered redirect URI:
+
+```bash .env
+DOMAIN_SERVER=https://chat.example.com
+GOOGLE_CALLBACK_URL=/oauth/google/callback
+```
+
+The full redirect URI will be: `https://chat.example.com/oauth/google/callback`
+
+### Email Verification Not Working
+
+Check email service configuration and ensure `ALLOW_UNVERIFIED_EMAIL_LOGIN` is set appropriately:
+
+```bash
+npm run create-user -- user@example.com "John Doe" johndoe --email-verified=true
+```
+
+## Next Steps
+
+- [User Administration](/user-management/user-administration) - Manage user accounts
+- [Permissions](/user-management/permissions) - Configure role-based access control
+- [Token Management](/user-management/token-management) - Manage user balances and credits

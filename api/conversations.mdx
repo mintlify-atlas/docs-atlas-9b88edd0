@@ -1,0 +1,461 @@
+---
+title: Conversations API
+description: API endpoints for managing conversations in LibreChat
+---
+
+The Conversations API allows you to manage chat conversations, including listing, retrieving, updating, deleting, archiving, and advanced operations like forking and duplicating conversations.
+
+## Authentication
+
+All endpoints require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## List Conversations
+
+<CodeGroup>
+```bash GET /api/convos
+curl -X GET "https://your-domain.com/api/convos?limit=25&cursor=<cursor>&sortBy=updatedAt&sortDirection=desc" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve a paginated list of conversations for the authenticated user.
+
+### Query Parameters
+
+<ParamField query="limit" type="integer" default="25">
+  Number of conversations to return per page (max 100)
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor from previous response's `nextCursor`
+</ParamField>
+
+<ParamField query="isArchived" type="boolean">
+  Filter by archived status (true/false)
+</ParamField>
+
+<ParamField query="sortBy" type="string" default="updatedAt">
+  Sort field: `updatedAt`, `createdAt`, or `title`
+</ParamField>
+
+<ParamField query="sortDirection" type="string" default="desc">
+  Sort direction: `asc` or `desc`
+</ParamField>
+
+<ParamField query="tags" type="string[]">
+  Filter by conversation tags (can be multiple)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search query to filter conversations by title or content
+</ParamField>
+
+### Response
+
+<ResponseField name="conversations" type="array">
+  Array of conversation objects
+  <Expandable title="Conversation object">
+    <ResponseField name="conversationId" type="string">
+      Unique conversation identifier
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Conversation title
+    </ResponseField>
+    <ResponseField name="endpoint" type="string">
+      Model endpoint used (e.g., "openAI", "anthropic", "agents")
+    </ResponseField>
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="isArchived" type="boolean">
+      Archive status
+    </ResponseField>
+    <ResponseField name="tags" type="string[]">
+      Associated tags
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Cursor for next page, null if no more results
+</ResponseField>
+
+---
+
+## Get Conversation
+
+<CodeGroup>
+```bash GET /api/convos/:conversationId
+curl -X GET "https://your-domain.com/api/convos/<conversation_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve a specific conversation by ID.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID to retrieve
+</ParamField>
+
+### Response
+
+Returns a complete conversation object with all settings and metadata.
+
+<ResponseField name="conversationId" type="string">
+  Unique conversation identifier
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Conversation title
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+  Model endpoint (e.g., "openAI", "anthropic", "agents")
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  Model name used in the conversation
+</ResponseField>
+
+<ResponseField name="temperature" type="number">
+  Model temperature parameter
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp
+</ResponseField>
+
+### Error Responses
+
+- **404 Not Found**: Conversation does not exist or user lacks access
+
+---
+
+## Get Generated Title
+
+<CodeGroup>
+```bash GET /api/convos/gen_title/:conversationId
+curl -X GET "https://your-domain.com/api/convos/gen_title/<conversation_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve the auto-generated title for a conversation. This endpoint uses exponential backoff polling (up to ~15 seconds) to wait for title generation.
+
+### Path Parameters
+
+<ParamField path="conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+### Response
+
+<ResponseField name="title" type="string">
+  The generated conversation title
+</ResponseField>
+
+### Error Responses
+
+- **404 Not Found**: Title generation not available or method not implemented for the conversation's endpoint
+
+---
+
+## Update Conversation Title
+
+<CodeGroup>
+```bash POST /api/convos/update
+curl -X POST "https://your-domain.com/api/convos/update" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "arg": {
+      "conversationId": "<conversation_id>",
+      "title": "New conversation title"
+    }
+  }'
+```
+</CodeGroup>
+
+Update the title of a conversation.
+
+### Request Body
+
+<ParamField body="arg.conversationId" type="string" required>
+  The conversation ID to update
+</ParamField>
+
+<ParamField body="arg.title" type="string" required>
+  New title (max 1024 characters, will be trimmed and sanitized)
+</ParamField>
+
+### Response
+
+Returns the updated conversation object.
+
+### Error Responses
+
+- **400 Bad Request**: Missing or invalid parameters
+- **403 Forbidden**: User lacks access to the conversation
+- **500 Internal Server Error**: Update failed
+
+---
+
+## Archive/Unarchive Conversation
+
+<CodeGroup>
+```bash POST /api/convos/archive
+curl -X POST "https://your-domain.com/api/convos/archive" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "arg": {
+      "conversationId": "<conversation_id>",
+      "isArchived": true
+    }
+  }'
+```
+</CodeGroup>
+
+Archive or unarchive a conversation.
+
+### Request Body
+
+<ParamField body="arg.conversationId" type="string" required>
+  The conversation ID
+</ParamField>
+
+<ParamField body="arg.isArchived" type="boolean" required>
+  Set to `true` to archive, `false` to unarchive
+</ParamField>
+
+### Response
+
+Returns the updated conversation object.
+
+### Error Responses
+
+- **400 Bad Request**: Missing or invalid parameters
+- **403 Forbidden**: User lacks access to the conversation
+- **500 Internal Server Error**: Operation failed
+
+---
+
+## Delete Conversation
+
+<CodeGroup>
+```bash DELETE /api/convos
+curl -X DELETE "https://your-domain.com/api/convos" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "arg": {
+      "conversationId": "<conversation_id>"
+    }
+  }'
+```
+</CodeGroup>
+
+Delete a specific conversation and associated data (messages, tool calls, shared links).
+
+### Request Body
+
+<ParamField body="arg.conversationId" type="string">
+  The conversation ID to delete
+</ParamField>
+
+<ParamField body="arg.thread_id" type="string">
+  Thread ID for Assistants API conversations (optional)
+</ParamField>
+
+<ParamField body="arg.endpoint" type="string">
+  Endpoint type (required if deleting Assistant thread)
+</ParamField>
+
+<ParamField body="arg.source" type="string">
+  Source of deletion request (e.g., "button")
+</ParamField>
+
+### Response
+
+Returns deletion confirmation with the number of deleted documents.
+
+### Error Responses
+
+- **400 Bad Request**: No parameters provided
+- **500 Internal Server Error**: Deletion failed
+
+---
+
+## Delete All Conversations
+
+<CodeGroup>
+```bash DELETE /api/convos/all
+curl -X DELETE "https://your-domain.com/api/convos/all" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Delete all conversations for the authenticated user, including messages, tool calls, and shared links.
+
+### Response
+
+Returns deletion confirmation with the number of deleted documents.
+
+### Error Responses
+
+- **500 Internal Server Error**: Deletion failed
+
+---
+
+## Fork Conversation
+
+<CodeGroup>
+```bash POST /api/convos/fork
+curl -X POST "https://your-domain.com/api/convos/fork" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conversationId": "<conversation_id>",
+    "messageId": "<message_id>",
+    "option": "branch",
+    "splitAtTarget": true,
+    "latestMessageId": "<latest_message_id>"
+  }'
+```
+</CodeGroup>
+
+Create a new conversation by forking from a specific message in an existing conversation. Rate limited.
+
+### Request Body
+
+<ParamField body="conversationId" type="string" required>
+  Source conversation ID
+</ParamField>
+
+<ParamField body="messageId" type="string" required>
+  Target message ID to fork from
+</ParamField>
+
+<ParamField body="option" type="string">
+  Fork option: "branch" or "direct"
+</ParamField>
+
+<ParamField body="splitAtTarget" type="boolean">
+  Whether to split at the target message
+</ParamField>
+
+<ParamField body="latestMessageId" type="string">
+  Latest message ID in the conversation
+</ParamField>
+
+### Response
+
+<ResponseField name="conversation" type="object">
+  The newly created forked conversation
+</ResponseField>
+
+<ResponseField name="messages" type="array">
+  Messages copied to the forked conversation
+</ResponseField>
+
+### Error Responses
+
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Fork operation failed
+
+---
+
+## Duplicate Conversation
+
+<CodeGroup>
+```bash POST /api/convos/duplicate
+curl -X POST "https://your-domain.com/api/convos/duplicate" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conversationId": "<conversation_id>",
+    "title": "Copy of conversation"
+  }'
+```
+</CodeGroup>
+
+Create a complete duplicate of a conversation with all messages.
+
+### Request Body
+
+<ParamField body="conversationId" type="string" required>
+  The conversation ID to duplicate
+</ParamField>
+
+<ParamField body="title" type="string">
+  Optional title for the duplicated conversation
+</ParamField>
+
+### Response
+
+Returns the newly created conversation object with duplicated messages.
+
+### Error Responses
+
+- **500 Internal Server Error**: Duplication failed
+
+---
+
+## Import Conversations
+
+<CodeGroup>
+```bash POST /api/convos/import
+curl -X POST "https://your-domain.com/api/convos/import" \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@conversations.json"
+```
+</CodeGroup>
+
+Import conversations from a JSON file. Rate limited.
+
+### Request
+
+Multipart form data with a single file field.
+
+<ParamField body="file" type="file" required>
+  JSON file containing conversation data
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Conversation(s) imported successfully"
+</ResponseField>
+
+### Error Responses
+
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Import failed
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or missing required fields |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 403 | Forbidden - User lacks permission to access the conversation |
+| 404 | Not Found - Conversation does not exist |
+| 429 | Too Many Requests - Rate limit exceeded |
+| 500 | Internal Server Error - Server-side error occurred |

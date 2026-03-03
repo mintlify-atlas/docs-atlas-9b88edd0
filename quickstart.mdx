@@ -1,80 +1,337 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quickstart Guide"
+description: "Get LibreChat running in under 5 minutes with Docker"
 ---
 
-## Get started in three steps
+Get your LibreChat instance up and running in minutes. This guide uses Docker for the fastest setup experience.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (v20.10+) installed and running
+- At least one AI provider API key (OpenAI, Anthropic, or Google)
+- 4GB of free RAM and 10GB of disk space
 
-### Step 2: Deploy your changes
+<Note>
+LibreChat supports multiple AI providers. You can start with one and add more later.
+</Note>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+## Installation
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Steps>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+<Step title="Clone the repository">
 
-### Step 3: Go live
+Open your terminal and clone LibreChat:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+```bash
+git clone https://github.com/danny-avila/LibreChat.git
+cd LibreChat
+```
 
-## Next steps
+</Step>
 
-Now that you have your docs running, explore these key features:
+<Step title="Create your environment file">
+
+Copy the example environment file to create your configuration:
+
+```bash
+cp .env.example .env
+```
+
+</Step>
+
+<Step title="Configure your API keys">
+
+Open the `.env` file in your text editor and add your API keys. At minimum, configure one AI provider:
+
+<CodeGroup>
+
+```bash OpenAI
+# Replace 'user_provided' with your actual API key
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
+```
+
+```bash Anthropic
+# Replace 'user_provided' with your actual API key
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxx
+```
+
+```bash Google
+# Replace 'user_provided' with your actual API key
+GOOGLE_KEY=AIxxxxxxxxxxxxxxxxxxxx
+```
+
+</CodeGroup>
+
+<Tip>
+You can add multiple providers by configuring multiple API keys. See the [AI Endpoints documentation](/configuration/ai-providers) for all supported providers.
+</Tip>
+
+</Step>
+
+<Step title="Set user permissions (Linux/macOS only)">
+
+If you're on Linux or macOS, set the correct user permissions:
+
+```bash
+# Get your user ID and group ID
+echo "UID=$(id -u)"
+echo "GID=$(id -g)"
+```
+
+Then update these values in your `.env` file:
+
+```bash
+UID=1000
+GID=1000
+```
+
+<Warning>
+Windows users can skip this step. Docker Desktop for Windows handles permissions automatically.
+</Warning>
+
+</Step>
+
+<Step title="Start LibreChat">
+
+Launch all services using Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+This command will:
+- Download the LibreChat container images (~2-3GB)
+- Start MongoDB, Meilisearch, RAG API, and the main LibreChat application
+- Initialize the database
+
+<Info>
+The first run takes 5-10 minutes to download images. Subsequent starts are much faster (under 30 seconds).
+</Info>
+
+</Step>
+
+<Step title="Access LibreChat">
+
+Once the containers are running, open your browser and navigate to:
+
+```
+http://localhost:3080
+```
+
+You'll see the LibreChat login page. Click **Sign up** to create your account.
+
+</Step>
+
+<Step title="Create your first account">
+
+Fill in the registration form:
+- Email address
+- Name
+- Username  
+- Password (minimum 8 characters)
+
+Click **Submit** to create your account.
+
+</Step>
+
+<Step title="Start your first conversation">
+
+After logging in:
+
+1. Select your AI provider from the top dropdown menu
+2. Choose a model (e.g., `gpt-4o`, `claude-sonnet-4`, or `gemini-2.5-pro`)
+3. Type your message in the text box
+4. Press Enter or click Send
+
+Congratulations! You're now chatting with AI through LibreChat.
+
+</Step>
+
+</Steps>
+
+## What's Next?
+
+Now that LibreChat is running, explore these features:
 
 <CardGroup cols={2}>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
+<Card title="Configure AI Endpoints" icon="plug" href="/configuration/ai-providers">
+Add more AI providers and customize model settings
 </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
+<Card title="Create Agents" icon="robot" href="/features/agents">
+Build custom AI assistants with specialized tools and capabilities
 </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
+<Card title="Enable Web Search" icon="magnifying-glass" href="/features/web-search">
+Let your AI search the internet for real-time information
 </Card>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
+<Card title="Set Up Authentication" icon="shield" href="/configuration/authentication">
+Configure OAuth, LDAP, or SSO for your team
 </Card>
 
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Port 3080 is already in use">
+
+If port 3080 is already taken on your system, change it in your `.env` file:
+
+```bash
+PORT=3090
+```
+
+Then restart the containers:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+Access LibreChat at `http://localhost:3090` instead.
+
+</Accordion>
+
+<Accordion title="Docker containers won't start">
+
+Check if all containers are running:
+
+```bash
+docker compose ps
+```
+
+View logs for errors:
+
+```bash
+docker compose logs
+```
+
+Common issues:
+- Docker Desktop not running (start it first)
+- Insufficient disk space (free up at least 10GB)
+- Port conflicts (change ports in `.env`)
+
+</Accordion>
+
+<Accordion title="'API key not provided' error">
+
+This means LibreChat can't find your API key. Verify:
+
+1. You've replaced `user_provided` with your actual key in `.env`
+2. There are no extra spaces or quotes around the key
+3. You've restarted the containers after editing `.env`:
+
+```bash
+docker compose restart
+```
+
+</Accordion>
+
+<Accordion title="Database connection errors">
+
+If you see MongoDB connection errors:
+
+```bash
+# Stop all containers
+docker compose down
+
+# Remove volumes (this will delete data)
+docker compose down -v
+
+# Start fresh
+docker compose up -d
+```
+
+<Warning>
+Using `-v` will delete all conversations and user data. Only use this for a fresh installation.
+</Warning>
+
+</Accordion>
+
+<Accordion title="Images or files not uploading">
+
+Check that the required directories exist and have proper permissions:
+
+```bash
+# Linux/macOS
+mkdir -p images uploads logs
+chmod -R 755 images uploads logs
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force images, uploads, logs
+```
+
+Then restart:
+
+```bash
+docker compose restart
+```
+
+</Accordion>
+
+<Accordion title="Slow response times">
+
+If AI responses are slow:
+
+1. Check your internet connection
+2. Verify your API key has sufficient quota/credits
+3. Try a faster model (e.g., `gpt-4o-mini` instead of `gpt-4o`)
+4. Check container resource usage:
+
+```bash
+docker stats
+```
+
+Ensure Docker has at least 4GB of RAM allocated in Docker Desktop settings.
+
+</Accordion>
+
+</AccordionGroup>
+
+## Managing LibreChat
+
+<CodeGroup>
+
+```bash Stop LibreChat
+docker compose down
+```
+
+```bash Restart LibreChat
+docker compose restart
+```
+
+```bash View Logs
+docker compose logs -f
+```
+
+```bash Update to Latest Version
+git pull
+docker compose pull
+docker compose up -d
+```
+
+```bash Check Container Status
+docker compose ps
+```
+
+</CodeGroup>
+
+## Getting Help
+
+Need assistance? Here are your resources:
+
+- **Documentation**: [librechat.ai/docs](https://librechat.ai/docs)
+- **Discord Community**: [discord.librechat.ai](https://discord.librechat.ai)
+- **GitHub Issues**: [github.com/danny-avila/LibreChat/issues](https://github.com/danny-avila/LibreChat/issues)
+- **Configuration Guide**: [Environment Variables](/configuration/environment-variables)
+
+<Tip>
+Before asking for help, check the logs with `docker compose logs` and include any error messages in your question.
+</Tip>

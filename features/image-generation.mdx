@@ -1,0 +1,335 @@
+---
+title: Image Generation
+description: Generate images using DALL-E, Flux, Stable Diffusion, and Gemini with AI agents
+---
+
+## Overview
+
+LibreChat supports multiple image generation engines that can be used by AI agents to create images based on text descriptions. Agents can generate images as part of conversations or workflows.
+
+## Supported Engines
+
+<Tabs>
+  <Tab title="DALL-E">
+    OpenAI's DALL-E 2 and DALL-E 3 models.
+    
+    ```bash
+    # .env
+    DALLE_API_KEY=your-openai-key
+    DALLE3_API_KEY=your-openai-key  # Can be separate
+    ```
+    
+    ```yaml
+    # librechat.yaml (optional customization)
+    # DALLE3_SYSTEM_PROMPT="Custom system prompt"
+    # DALLE3_BASEURL="https://api.openai.com/v1"
+    ```
+  </Tab>
+  
+  <Tab title="OpenAI Image Tools">
+    Customizable OpenAI image generation for agents:
+    
+    ```bash
+    # .env
+    IMAGE_GEN_OAI_API_KEY=your-key
+    IMAGE_GEN_OAI_MODEL=gpt-image-1
+    # IMAGE_GEN_OAI_BASEURL=custom-url
+    ```
+    
+    Custom descriptions:
+    ```bash
+    IMAGE_GEN_OAI_DESCRIPTION="Generate images with custom AI"
+    IMAGE_GEN_OAI_PROMPT_DESCRIPTION="Custom prompt description"
+    IMAGE_EDIT_OAI_DESCRIPTION="Edit images with AI"
+    ```
+  </Tab>
+  
+  <Tab title="Flux">
+    Black Forest Labs Flux models for high-quality generation.
+    
+    ```bash
+    # .env
+    FLUX_API_KEY=your-flux-key
+    FLUX_API_BASE_URL=https://api.us1.bfl.ai  # or https://api.bfl.ml
+    ```
+    
+    Get your API key at [api.us1.bfl.ai](https://api.us1.bfl.ai/auth/profile)
+  </Tab>
+  
+  <Tab title="Stable Diffusion">
+    Self-hosted or cloud-based Stable Diffusion WebUI.
+    
+    ```bash
+    # .env
+    SD_WEBUI_URL=http://host.docker.internal:7860
+    ```
+    
+    <Note>
+      For Docker setups, use `host.docker.internal` to access the host machine.
+    </Note>
+  </Tab>
+  
+  <Tab title="Gemini">
+    Google's Gemini models with image generation capability.
+    
+    ```bash
+    # .env
+    GEMINI_API_KEY=your-gemini-key  # Or use GOOGLE_KEY
+    GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+    ```
+    
+    ```yaml
+    # librechat.yaml (for Vertex AI)
+    # GOOGLE_SERVICE_KEY_FILE=/path/to/service-account.json
+    # GOOGLE_LOC=us-central1
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+<Steps>
+  <Step title="Choose Image Provider">
+    Select one or more image generation engines based on your needs:
+    
+    - **DALL-E**: Best integration, commercial use allowed
+    - **Flux**: High quality, flexible licensing
+    - **Stable Diffusion**: Self-hosted, fully customizable
+    - **Gemini**: Multimodal integration with Google models
+  </Step>
+  
+  <Step title="Configure API Keys">
+    Add the necessary API keys to your `.env` file:
+    
+    ```bash
+    # .env - Choose the engines you want
+    DALLE3_API_KEY=your-openai-key
+    FLUX_API_KEY=your-flux-key
+    SD_WEBUI_URL=http://localhost:7860
+    GEMINI_API_KEY=your-gemini-key
+    ```
+  </Step>
+  
+  <Step title="Enable for Agents">
+    Image generation is automatically available to agents when configured. No additional settings needed in `librechat.yaml`.
+  </Step>
+</Steps>
+
+## Using Image Generation
+
+### In Conversations
+
+<Tabs>
+  <Tab title="Direct Request">
+    ```
+    Generate an image of a serene mountain landscape at sunset
+    with a lake in the foreground.
+    ```
+  </Tab>
+  
+  <Tab title="As Part of Workflow">
+    ```
+    Create a marketing campaign for our new product:
+    1. Write a tagline
+    2. Generate a hero image showing the product in use
+    3. Draft social media copy
+    ```
+  </Tab>
+  
+  <Tab title="With Specific Style">
+    ```
+    Generate an image in the style of impressionist painting:
+    A Parisian café scene with people enjoying coffee.
+    ```
+  </Tab>
+</Tabs>
+
+### Image Generation Tool
+
+When an agent has image generation enabled, it uses the tool automatically:
+
+```typescript
+// Agent automatically calls image generation tool
+{
+  tool: "generate_image",
+  parameters: {
+    prompt: "A serene mountain landscape at sunset",
+    size: "1024x1024",
+    quality: "hd"
+  }
+}
+```
+
+## Generation Progress
+
+During image generation, users see a progress indicator:
+
+```typescript
+// Progress tracking component
+<ImageGen
+  initialProgress={0.1}
+  args="Creating Image..."
+/>
+```
+
+The progress animation shows:
+- Visual spinner
+- Status text ("Creating Image", "Finished")
+- Progress percentage
+
+## File Configuration
+
+Control image generation settings:
+
+```yaml
+# librechat.yaml
+fileConfig:
+  imageGeneration:
+    percentage: 100  # Scale to percentage of original
+    # OR
+    px: 1024  # Fixed pixel size
+```
+
+## Advanced Options
+
+### DALL-E Azure Integration
+
+Use DALL-E through Azure OpenAI:
+
+```bash
+# .env
+DALLE3_AZURE_API_VERSION=2024-02-15-preview
+DALLE2_AZURE_API_VERSION=2024-02-15-preview
+```
+
+### Custom DALL-E Endpoints
+
+```bash
+# .env
+DALLE_REVERSE_PROXY=https://your-proxy.com
+DALLE3_BASEURL=https://custom-dalle.com
+DALLE2_BASEURL=https://custom-dalle.com
+```
+
+### Stable Diffusion Configuration
+
+For self-hosted Stable Diffusion WebUI:
+
+1. Launch Automatic1111 WebUI with API enabled:
+   ```bash
+   ./webui.sh --api --listen
+   ```
+
+2. Configure the URL:
+   ```bash
+   SD_WEBUI_URL=http://localhost:7860
+   ```
+
+### Gemini Authentication
+
+Multiple authentication methods:
+
+<Accordion title="API Key (AI Studio)">
+  ```bash
+  GEMINI_API_KEY=your-key
+  ```
+  Default, easiest for development.
+</Accordion>
+
+<Accordion title="Shared Google Key">
+  ```bash
+  GOOGLE_KEY=your-key
+  ```
+  Shared with Google chat endpoint.
+</Accordion>
+
+<Accordion title="Vertex AI Service Account">
+  ```bash
+  GOOGLE_SERVICE_KEY_FILE=/path/to/service-account.json
+  GOOGLE_LOC=us-central1
+  ```
+  For production deployments.
+</Accordion>
+
+## Image Specifications
+
+### DALL-E
+
+- **DALL-E 2**: 256x256, 512x512, 1024x1024
+- **DALL-E 3**: 1024x1024, 1792x1024, 1024x1792
+- Formats: PNG
+- Quality: Standard or HD (DALL-E 3)
+
+### Flux
+
+- Resolutions: Up to 2048x2048
+- Formats: PNG, JPEG
+- Models: Flux Pro, Flux Dev, Flux Schnell
+
+### Stable Diffusion
+
+- Fully customizable based on your model
+- Common: 512x512, 768x768, 1024x1024
+- Supports various samplers and schedulers
+
+### Gemini
+
+- Model: gemini-2.5-flash-image
+- Integrated with Gemini multimodal capabilities
+- Supports various aspect ratios
+
+## Troubleshooting
+
+<Accordion title="Image generation fails">
+  - Verify API keys are correct and active
+  - Check API quota/billing status
+  - Ensure network connectivity to image service
+  - Review error messages in logs
+</Accordion>
+
+<Accordion title="Stable Diffusion not connecting">
+  - Verify WebUI is running with `--api` flag
+  - Check firewall settings
+  - Use `host.docker.internal` for Docker setups
+  - Confirm URL includes port number
+</Accordion>
+
+<Accordion title="DALL-E 3 prompts rejected">
+  - DALL-E 3 has content policy restrictions
+  - Avoid restricted content (violence, adult, etc.)
+  - Rephrase prompts if rejected
+  - Check OpenAI status page for outages
+</Accordion>
+
+<Accordion title="Images not displaying">
+  - Check file storage configuration
+  - Verify browser can access image URLs
+  - Check file size limits in `fileConfig`
+  - Clear browser cache
+</Accordion>
+
+## Best Practices
+
+<Tip>
+  - **Detailed prompts**: More specific descriptions produce better results
+  - **Style keywords**: Include art style, lighting, perspective
+  - **Iterate**: Refine prompts based on results
+  - **Multiple engines**: Different engines excel at different styles
+  - **Cost awareness**: Monitor API usage, especially for DALL-E 3
+</Tip>
+
+## Example Prompts
+
+```
+Good: "A photorealistic portrait of a golden retriever puppy
+playing in autumn leaves, soft natural lighting, shallow depth
+of field, professional photography"
+
+Poor: "dog picture"
+```
+
+## Related Features
+
+- [Agents](/features/agents)
+- [Multimodal Chat](/features/multimodal-chat)
+- [Artifacts](/features/artifacts)

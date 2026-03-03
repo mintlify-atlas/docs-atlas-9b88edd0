@@ -1,0 +1,488 @@
+---
+title: File Storage
+description: Configure file storage strategies including local, AWS S3, Azure Blob, and Firebase
+---
+
+LibreChat supports multiple file storage strategies for different file types. Configure storage in `librechat.yaml`.
+
+## Storage Strategies
+
+Three storage backends are available:
+
+- **local**: Store files on the server filesystem
+- **s3**: AWS S3 or S3-compatible storage (MinIO, Backblaze B2, etc.)
+- **firebase**: Firebase Cloud Storage
+
+## Configuration Formats
+
+### Legacy Format (Single Strategy)
+
+Apply the same storage strategy to all file types:
+
+```yaml
+fileStrategy: "s3"
+```
+
+### Granular Format (Recommended)
+
+Use different storage strategies for different file types:
+
+```yaml
+fileStrategy:
+  avatar: "s3"        # User/agent avatar images
+  image: "firebase"   # Uploaded images in chats
+  document: "local"   # Document uploads (PDFs, text files, etc.)
+```
+
+<ParamField path="fileStrategy.avatar" type="string" default="local">
+  Storage strategy for user and agent avatar images
+  
+  Available: `local`, `s3`, `firebase`
+</ParamField>
+
+<ParamField path="fileStrategy.image" type="string" default="local">
+  Storage strategy for uploaded images in chats
+  
+  Available: `local`, `s3`, `firebase`
+</ParamField>
+
+<ParamField path="fileStrategy.document" type="string" default="local">
+  Storage strategy for document uploads (PDFs, text files, etc.)
+  
+  Available: `local`, `s3`, `firebase`
+</ParamField>
+
+<Note>
+  If not specified, all file types default to `local` storage
+</Note>
+
+## Local Storage
+
+Stores files on the server's filesystem.
+
+```yaml
+fileStrategy: "local"
+# or
+fileStrategy:
+  avatar: "local"
+  image: "local"
+  document: "local"
+```
+
+### Local Storage Paths
+
+Files are stored in different directories based on type:
+
+- **Images**: `publicPath/images/userId/` (served statically)
+- **Documents**: `uploads/userId/` (downloaded via API)
+
+### Configuration
+
+No additional environment variables required. Files are stored in:
+
+```
+/app/client/public/images/  # Images
+/app/api/uploads/           # Documents
+```
+
+<Warning>
+  Local storage is not recommended for production deployments with multiple instances or container orchestration (e.g., Kubernetes) as files are not shared across instances.
+</Warning>
+
+## AWS S3 Storage
+
+Store files in AWS S3 or S3-compatible services.
+
+```yaml
+fileStrategy: "s3"
+# or
+fileStrategy:
+  avatar: "s3"
+  image: "s3"
+  document: "s3"
+```
+
+### Environment Variables
+
+<ParamField path="AWS_ACCESS_KEY_ID" type="string" required>
+  AWS access key ID
+  
+  ```bash
+  AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+  ```
+</ParamField>
+
+<ParamField path="AWS_SECRET_ACCESS_KEY" type="string" required>
+  AWS secret access key
+  
+  ```bash
+  AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  ```
+</ParamField>
+
+<ParamField path="AWS_REGION" type="string" required>
+  AWS region
+  
+  ```bash
+  AWS_REGION=us-east-1
+  ```
+</ParamField>
+
+<ParamField path="AWS_BUCKET_NAME" type="string" required>
+  S3 bucket name
+  
+  ```bash
+  AWS_BUCKET_NAME=librechat-files
+  ```
+</ParamField>
+
+<ParamField path="AWS_ENDPOINT_URL" type="string">
+  Custom endpoint URL for S3-compatible services
+  
+  ```bash
+  # MinIO
+  AWS_ENDPOINT_URL=https://minio.example.com
+  
+  # Backblaze B2
+  AWS_ENDPOINT_URL=https://s3.us-west-002.backblazeb2.com
+  
+  # Hetzner Storage Box
+  AWS_ENDPOINT_URL=https://hetzner.storage.box.com
+  ```
+</ParamField>
+
+<ParamField path="AWS_FORCE_PATH_STYLE" type="boolean" default="false">
+  Required for path-style S3-compatible providers
+  
+  <Note>
+  Set to `true` for MinIO, Hetzner, Backblaze B2, and other providers that don't support virtual-hosted-style URLs (bucket.endpoint). Not needed for AWS S3.
+  </Note>
+  
+  ```bash
+  AWS_FORCE_PATH_STYLE=true
+  ```
+</ParamField>
+
+### S3-Compatible Providers
+
+<Accordion title="MinIO">
+  ```bash
+  AWS_ENDPOINT_URL=https://minio.example.com
+  AWS_ACCESS_KEY_ID=minioadmin
+  AWS_SECRET_ACCESS_KEY=minioadmin
+  AWS_BUCKET_NAME=librechat
+  AWS_REGION=us-east-1
+  AWS_FORCE_PATH_STYLE=true
+  ```
+</Accordion>
+
+<Accordion title="Backblaze B2">
+  ```bash
+  AWS_ENDPOINT_URL=https://s3.us-west-002.backblazeb2.com
+  AWS_ACCESS_KEY_ID=your-b2-key-id
+  AWS_SECRET_ACCESS_KEY=your-b2-application-key
+  AWS_BUCKET_NAME=your-bucket-name
+  AWS_REGION=us-west-002
+  AWS_FORCE_PATH_STYLE=true
+  ```
+</Accordion>
+
+<Accordion title="Hetzner Storage Box">
+  ```bash
+  AWS_ENDPOINT_URL=https://hetzner.storage.box.com
+  AWS_ACCESS_KEY_ID=your-storage-box-username
+  AWS_SECRET_ACCESS_KEY=your-storage-box-password
+  AWS_BUCKET_NAME=your-bucket-name
+  AWS_REGION=fsn1
+  AWS_FORCE_PATH_STYLE=true
+  ```
+</Accordion>
+
+### File Organization
+
+Files are organized in S3 by user ID and file type:
+
+```
+bucket-name/
+├── images/
+│   └── user-id/
+│       └── file-id__filename.png
+└── uploads/
+    └── user-id/
+        └── file-id__filename.pdf
+```
+
+## Azure Blob Storage
+
+Store files in Azure Blob Storage.
+
+```yaml
+fileStrategy: "azure"
+```
+
+<Note>
+  Azure Blob Storage uses the same configuration key as S3 in the YAML file. Configure via environment variables.
+</Note>
+
+### Environment Variables
+
+<ParamField path="AZURE_STORAGE_CONNECTION_STRING" type="string" required>
+  Azure Storage account connection string
+  
+  ```bash
+  AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net
+  ```
+</ParamField>
+
+<ParamField path="AZURE_CONTAINER_NAME" type="string" default="files">
+  Azure Blob container name
+  
+  ```bash
+  AZURE_CONTAINER_NAME=librechat-files
+  ```
+</ParamField>
+
+<ParamField path="AZURE_STORAGE_PUBLIC_ACCESS" type="boolean" default="false">
+  Enable public access to blobs
+  
+  ```bash
+  AZURE_STORAGE_PUBLIC_ACCESS=false
+  ```
+</ParamField>
+
+### Example Configuration
+
+```bash .env
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=librechat;AccountKey=abc123...;EndpointSuffix=core.windows.net
+AZURE_CONTAINER_NAME=files
+AZURE_STORAGE_PUBLIC_ACCESS=false
+```
+
+## Firebase Cloud Storage
+
+Store files in Firebase Cloud Storage.
+
+```yaml
+fileStrategy: "firebase"
+# or
+fileStrategy:
+  avatar: "firebase"
+  image: "firebase"
+  document: "firebase"
+```
+
+### Environment Variables
+
+<ParamField path="FIREBASE_API_KEY" type="string" required>
+  Firebase API key
+</ParamField>
+
+<ParamField path="FIREBASE_AUTH_DOMAIN" type="string" required>
+  Firebase auth domain
+</ParamField>
+
+<ParamField path="FIREBASE_PROJECT_ID" type="string" required>
+  Firebase project ID
+</ParamField>
+
+<ParamField path="FIREBASE_STORAGE_BUCKET" type="string" required>
+  Firebase storage bucket name
+</ParamField>
+
+<ParamField path="FIREBASE_MESSAGING_SENDER_ID" type="string" required>
+  Firebase messaging sender ID
+</ParamField>
+
+<ParamField path="FIREBASE_APP_ID" type="string" required>
+  Firebase app ID
+</ParamField>
+
+### Example Configuration
+
+```bash .env
+FIREBASE_API_KEY=AIzaSyD...
+FIREBASE_AUTH_DOMAIN=librechat-app.firebaseapp.com
+FIREBASE_PROJECT_ID=librechat-app
+FIREBASE_STORAGE_BUCKET=librechat-app.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=123456789
+FIREBASE_APP_ID=1:123456789:web:abc123
+```
+
+### File Organization
+
+Files are stored with the following structure:
+
+```
+storage-bucket/
+├── images/
+│   └── user-id/
+│       └── filename.png
+└── uploads/
+    └── user-id/
+        └── filename.pdf
+```
+
+## File Upload Limits
+
+Configure file upload limits in `librechat.yaml`:
+
+```yaml
+fileConfig:
+  endpoints:
+    assistants:
+      fileLimit: 5
+      fileSizeLimit: 10        # MB per file
+      totalSizeLimit: 50       # MB total per request
+      supportedMimeTypes:
+        - "image/.*"
+        - "application/pdf"
+    openAI:
+      disabled: true            # Disable file uploads
+    default:
+      totalSizeLimit: 20
+    YourCustomEndpointName:
+      fileLimit: 2
+      fileSizeLimit: 5
+  
+  serverFileSizeLimit: 100      # Global server limit (MB)
+  avatarSizeLimit: 2            # Avatar image limit (MB)
+  
+  imageGeneration:
+    percentage: 100
+    px: 1024
+  
+  clientImageResize:
+    enabled: false
+    maxWidth: 1900
+    maxHeight: 1900
+    quality: 0.92               # JPEG quality (0.0-1.0)
+```
+
+<ParamField path="fileConfig.endpoints.<name>.fileLimit" type="number">
+  Maximum number of files per request
+</ParamField>
+
+<ParamField path="fileConfig.endpoints.<name>.fileSizeLimit" type="number">
+  Maximum size for individual file (MB)
+</ParamField>
+
+<ParamField path="fileConfig.endpoints.<name>.totalSizeLimit" type="number">
+  Maximum total size for all files in request (MB)
+</ParamField>
+
+<ParamField path="fileConfig.serverFileSizeLimit" type="number" default="100">
+  Global server file size limit (MB)
+</ParamField>
+
+<ParamField path="fileConfig.avatarSizeLimit" type="number" default="2">
+  Avatar image size limit (MB)
+</ParamField>
+
+### Client-Side Image Resizing
+
+<ParamField path="fileConfig.clientImageResize.enabled" type="boolean" default="false">
+  Enable client-side image resizing before upload
+</ParamField>
+
+<ParamField path="fileConfig.clientImageResize.maxWidth" type="number" default="1900">
+  Maximum width for resized images (pixels)
+</ParamField>
+
+<ParamField path="fileConfig.clientImageResize.maxHeight" type="number" default="1900">
+  Maximum height for resized images (pixels)
+</ParamField>
+
+<ParamField path="fileConfig.clientImageResize.quality" type="number" default="0.92">
+  JPEG compression quality (0.0-1.0)
+</ParamField>
+
+## Use Cases
+
+<Accordion title="Privacy & Compliance">
+  Keep sensitive documents on local storage for compliance:
+  
+  ```yaml
+  fileStrategy:
+    avatar: "s3"
+    image: "s3"
+    document: "local"  # Keep documents on-premise
+  ```
+</Accordion>
+
+<Accordion title="Performance Optimization">
+  Use S3 for avatars (fast global access) and Firebase for images (automatic optimization):
+  
+  ```yaml
+  fileStrategy:
+    avatar: "s3"
+    image: "firebase"
+    document: "s3"
+  ```
+</Accordion>
+
+<Accordion title="Cost Optimization">
+  Store frequently accessed avatars in S3, keep large documents local:
+  
+  ```yaml
+  fileStrategy:
+    avatar: "s3"
+    image: "s3"
+    document: "local"
+  ```
+</Accordion>
+
+## Shared Links
+
+Enable file sharing via public links:
+
+<ParamField path="ALLOW_SHARED_LINKS" type="boolean" default="true">
+  Enable shared links feature
+</ParamField>
+
+<ParamField path="ALLOW_SHARED_LINKS_PUBLIC" type="boolean" default="true">
+  Allow public shared links (accessible without authentication)
+</ParamField>
+
+```bash .env
+ALLOW_SHARED_LINKS=true
+ALLOW_SHARED_LINKS_PUBLIC=true
+```
+
+## Static File Caching
+
+Configure cache headers for static files:
+
+<ParamField path="STATIC_CACHE_MAX_AGE" type="number" default="172800">
+  Browser cache duration in seconds (default: 2 days)
+  
+  <Note>Only takes effect when NODE_ENV=production</Note>
+</ParamField>
+
+<ParamField path="STATIC_CACHE_S_MAX_AGE" type="number" default="86400">
+  CDN/proxy cache duration in seconds (default: 1 day)
+</ParamField>
+
+```bash .env
+NODE_ENV=production
+STATIC_CACHE_MAX_AGE=172800   # 2 days
+STATIC_CACHE_S_MAX_AGE=86400  # 1 day
+```
+
+## Advanced Options
+
+<ParamField path="DISABLE_COMPRESSION" type="boolean">
+  Disable Express-based compression
+  
+  <Note>Use if you have another service doing compression</Note>
+</ParamField>
+
+<ParamField path="ENABLE_IMAGE_OUTPUT_GZIP_SCAN" type="boolean">
+  Enable scanning and serving of gzipped images
+  
+  <Warning>Scans image folder on startup and keeps map in memory. Use carefully with large image counts.</Warning>
+</ParamField>
+
+```bash .env
+DISABLE_COMPRESSION=true
+ENABLE_IMAGE_OUTPUT_GZIP_SCAN=true
+```

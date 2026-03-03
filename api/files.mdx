@@ -1,0 +1,413 @@
+---
+title: Files API
+description: API endpoints for uploading, managing, and downloading files
+---
+
+The Files API allows you to upload files for use with agents, assistants, and conversations, as well as manage and download files. Supports multiple storage strategies including local, S3, Azure Blob, and OpenAI storage.
+
+## Authentication
+
+All endpoints require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## List Files
+
+<CodeGroup>
+```bash GET /api/files
+curl -X GET "https://your-domain.com/api/files" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve all files uploaded by the authenticated user.
+
+### Response
+
+Returns an array of file objects. S3 URLs are automatically refreshed if expired.
+
+<ResponseField name="files" type="array">
+  <Expandable title="File object">
+    <ResponseField name="file_id" type="string">
+      Unique file identifier
+    </ResponseField>
+    <ResponseField name="filename" type="string">
+      Original filename
+    </ResponseField>
+    <ResponseField name="filepath" type="string">
+      Storage path or URL
+    </ResponseField>
+    <ResponseField name="bytes" type="integer">
+      File size in bytes
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      MIME type
+    </ResponseField>
+    <ResponseField name="source" type="string">
+      Storage source ("local", "s3", "azure", "openai", etc.)
+    </ResponseField>
+    <ResponseField name="context" type="string">
+      File context ("message_attachment", "agents", "assistants")
+    </ResponseField>
+    <ResponseField name="embedded" type="boolean">
+      Whether the file has been embedded/processed
+    </ResponseField>
+    <ResponseField name="usage" type="number">
+      Usage count or token count
+    </ResponseField>
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="expiresAt" type="string">
+      Expiration timestamp (for temporary files)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Agent Files
+
+<CodeGroup>
+```bash GET /api/files/agent/:agent_id
+curl -X GET "https://your-domain.com/api/files/agent/<agent_id>" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve files attached to a specific agent. Requires EDIT permission on the agent.
+
+### Path Parameters
+
+<ParamField path="agent_id" type="string" required>
+  The agent ID
+</ParamField>
+
+### Response
+
+Returns an array of file objects attached to the agent via `tool_resources` (file_search, code_interpreter).
+
+---
+
+## Get File Configuration
+
+<CodeGroup>
+```bash GET /api/files/config
+curl -X GET "https://your-domain.com/api/files/config" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve the server's file upload configuration (limits, allowed types, etc.).
+
+### Response
+
+<ResponseField name="serverFileSizeLimit" type="integer">
+  Maximum file size in bytes
+</ResponseField>
+
+<ResponseField name="avatarSizeLimit" type="integer">
+  Maximum avatar size in bytes
+</ResponseField>
+
+<ResponseField name="endpoints" type="object">
+  Per-endpoint file configuration
+  <Expandable title="Endpoint config">
+    <ResponseField name="disabled" type="boolean">
+      Whether file uploads are disabled for this endpoint
+    </ResponseField>
+    <ResponseField name="fileLimit" type="integer">
+      Maximum number of files per upload
+    </ResponseField>
+    <ResponseField name="fileSizeLimit" type="integer">
+      Maximum file size in bytes
+    </ResponseField>
+    <ResponseField name="totalSizeLimit" type="integer">
+      Maximum total size for all files
+    </ResponseField>
+    <ResponseField name="supportedMimeTypes" type="array">
+      Array of supported MIME type patterns
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Upload File
+
+<CodeGroup>
+```bash POST /api/files
+curl -X POST "https://your-domain.com/api/files" \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@document.pdf" \
+  -F "endpoint=agents" \
+  -F "agent_id=<agent_id>" \
+  -F "tool_resource=file_search" \
+  -F "message_file=false"
+```
+</CodeGroup>
+
+Upload a file for use with agents, assistants, or as a message attachment. Rate limited.
+
+### Request
+
+Multipart form data with file and metadata fields.
+
+<ParamField body="file" type="file" required>
+  The file to upload
+</ParamField>
+
+<ParamField body="endpoint" type="string">
+  Endpoint the file is for ("agents", "assistants", "openAI", etc.)
+</ParamField>
+
+<ParamField body="agent_id" type="string">
+  Agent ID (if attaching to an agent)
+</ParamField>
+
+<ParamField body="assistant_id" type="string">
+  Assistant ID (if attaching to an assistant)
+</ParamField>
+
+<ParamField body="tool_resource" type="string">
+  Tool resource type: "file_search" or "code_interpreter"
+</ParamField>
+
+<ParamField body="message_file" type="boolean" default="false">
+  Whether this is a temporary message attachment (true) or permanent agent file (false)
+</ParamField>
+
+<ParamField body="conversationId" type="string">
+  Conversation ID for message attachments
+</ParamField>
+
+<ParamField body="file_id" type="string">
+  Optional custom file ID (UUID generated if omitted)
+</ParamField>
+
+### Response
+
+Returns the uploaded file object.
+
+### Permissions
+
+Permanent agent file uploads (message_file=false) require:
+- User must be agent author OR
+- User must have EDIT permission on the agent
+- Admin users bypass permission checks
+
+Message attachments (message_file=true) require only chat access.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid file format or exceeds limits
+- **403 Forbidden**: Insufficient permissions to upload to agent
+- **404 Not Found**: Agent not found
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Upload failed
+
+---
+
+## Download File
+
+<CodeGroup>
+```bash GET /api/files/download/:userId/:file_id
+curl -X GET "https://your-domain.com/api/files/download/<user_id>/<file_id>" \
+  -H "Authorization: Bearer <token>" \
+  -o downloaded_file
+```
+</CodeGroup>
+
+Download a file. Access is validated by middleware.
+
+### Path Parameters
+
+<ParamField path="userId" type="string" required>
+  User ID of the file owner
+</ParamField>
+
+<ParamField path="file_id" type="string" required>
+  The file ID
+</ParamField>
+
+### Response
+
+Returns the file as an octet-stream with appropriate headers:
+- `Content-Disposition`: attachment with filename
+- `Content-Type`: application/octet-stream
+- `X-File-Metadata`: JSON metadata about the file
+
+### Error Responses
+
+- **400 Bad Request**: File model not available or invalid request
+- **403 Forbidden**: User lacks access to the file
+- **404 Not Found**: File not found
+- **500 Internal Server Error**: Download failed
+- **501 Not Implemented**: Storage strategy doesn't support downloads
+
+---
+
+## Download Code Output File
+
+<CodeGroup>
+```bash GET /api/files/code/download/:session_id/:fileId
+curl -X GET "https://your-domain.com/api/files/code/download/<session_id>/<file_id>" \
+  -H "Authorization: Bearer <token>" \
+  -o output_file
+```
+</CodeGroup>
+
+Download a file generated by code execution (code interpreter tool).
+
+### Path Parameters
+
+<ParamField path="session_id" type="string" required>
+  Code execution session ID (21 characters, base64url)
+</ParamField>
+
+<ParamField path="fileId" type="string" required>
+  File ID within the session (21 characters, base64url)
+</ParamField>
+
+### Response
+
+Streams the file content with appropriate headers from the code execution service.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid session_id or fileId
+- **500 Internal Server Error**: Download failed
+- **501 Not Implemented**: Storage strategy doesn't support this operation
+
+---
+
+## Delete Files
+
+<CodeGroup>
+```bash DELETE /api/files
+curl -X DELETE "https://your-domain.com/api/files" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      {
+        "file_id": "<file_id>",
+        "filepath": "<filepath>",
+        "embedded": false,
+        "source": "local"
+      }
+    ],
+    "agent_id": "<agent_id>",
+    "tool_resource": "file_search"
+  }'
+```
+</CodeGroup>
+
+Delete one or more files. Supports bulk deletion and unlinking from agents/assistants.
+
+### Request Body
+
+<ParamField body="files" type="array" required>
+  Array of file objects to delete
+  <Expandable title="File object">
+    <ParamField body="file_id" type="string" required>
+      File ID (must be valid UUID or OpenAI file ID format)
+    </ParamField>
+    <ParamField body="filepath" type="string" required>
+      File path or URL
+    </ParamField>
+    <ParamField body="embedded" type="boolean">
+      Whether the file is embedded
+    </ParamField>
+    <ParamField body="source" type="string">
+      Storage source
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="agent_id" type="string">
+  Agent ID (for unlinking files from agents)
+</ParamField>
+
+<ParamField body="assistant_id" type="string">
+  Assistant ID (for unlinking files from assistants)
+</ParamField>
+
+<ParamField body="tool_resource" type="string">
+  Tool resource type: "file_search" or "code_interpreter"
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+### Permission Handling
+
+- Users can always delete their own files
+- Non-owned files require access via agent (EDIT permission for deletion)
+- If `agent_id` is provided, checks if user has access to delete files via that agent
+
+### Error Responses
+
+- **204 No Content**: Nothing provided to delete
+- **403 Forbidden**: User lacks access to delete one or more files
+- **500 Internal Server Error**: Deletion failed
+
+---
+
+## File Sources
+
+LibreChat supports multiple file storage strategies:
+
+| Source | Description |
+|--------|-------------|
+| `local` | Local filesystem storage |
+| `s3` | AWS S3 bucket |
+| `azure_blob` | Azure Blob Storage |
+| `firebase` | Firebase Storage |
+| `openai` | OpenAI API file storage |
+| `azure` | Azure OpenAI file storage |
+| `vectordb` | Vector database (for embeddings) |
+| `execute_code` | Code execution output files |
+| `mistral_ocr` | Mistral OCR processed files |
+| `text` | Text extraction service |
+| `document_parser` | Document parsing service |
+
+---
+
+## File Contexts
+
+Files can have different contexts indicating their usage:
+
+| Context | Description |
+|---------|-------------|
+| `message_attachment` | Temporary file attached to a message |
+| `agents` | File uploaded to an agent's tool resources |
+| `assistants` | File uploaded to an assistant |
+| `assistants_output` | File generated by an assistant |
+| `execute_code` | Code execution output |
+| `image_generation` | Generated image |
+| `avatar` | User or agent avatar image |
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid file format, exceeds limits, or invalid parameters |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 403 | Forbidden - User lacks permission to access or modify the file |
+| 404 | Not Found - File or agent/assistant not found |
+| 429 | Too Many Requests - Rate limit exceeded |
+| 500 | Internal Server Error - Upload, download, or deletion failed |
+| 501 | Not Implemented - Storage strategy doesn't support the operation |

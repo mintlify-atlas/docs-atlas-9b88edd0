@@ -1,0 +1,513 @@
+---
+title: Cloud Platform Deployment
+description: Deploy LibreChat to Railway, Zeabur, and Sealos with one-click templates
+---
+
+LibreChat supports one-click deployment to multiple cloud platforms, making it easy to get started without managing infrastructure yourself.
+
+## Supported Platforms
+
+LibreChat provides official deployment templates for:
+
+- **Railway**: Managed container platform with automatic scaling
+- **Zeabur**: Edge-optimized deployment platform
+- **Sealos**: Kubernetes-based cloud operating system
+
+## Railway Deployment
+
+[Railway](https://railway.app) provides a modern platform for deploying and scaling applications with minimal configuration.
+
+### Quick Deploy
+
+<Steps>
+
+<Step title="Deploy with One Click">
+
+Click the button below to deploy LibreChat to Railway:
+
+<a href="https://railway.com/deploy/b5k2mn?referralCode=HI9hWz" target="_blank">
+  <img src="https://railway.com/button.svg" alt="Deploy on Railway" height="30" />
+</a>
+
+</Step>
+
+<Step title="Configure Environment Variables">
+
+Railway will prompt you to configure required environment variables:
+
+```bash
+# Authentication Secrets (generate with: openssl rand -hex 32)
+JWT_SECRET=your-jwt-secret-here
+JWT_REFRESH_SECRET=your-refresh-secret-here
+CREDS_KEY=your-creds-key-here
+CREDS_IV=your-creds-iv-here  # Use: openssl rand -hex 16
+
+# Meilisearch
+MEILI_MASTER_KEY=your-meili-master-key
+
+# API Keys
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
+```
+
+</Step>
+
+<Step title="Wait for Deployment">
+
+Railway will automatically:
+- Provision MongoDB, Meilisearch, and PostgreSQL
+- Build and deploy the LibreChat container
+- Configure networking and SSL certificates
+- Provide you with a public URL
+
+</Step>
+
+<Step title="Access Your Instance">
+
+Once deployed, Railway provides a public URL like:
+
+```
+https://librechat-production-xxxx.up.railway.app
+```
+
+</Step>
+
+</Steps>
+
+### Features
+
+- **Automatic SSL**: HTTPS certificates are provisioned automatically
+- **Managed Databases**: MongoDB and PostgreSQL included
+- **Auto Scaling**: Scales based on traffic
+- **Persistent Storage**: Volumes for uploads and images
+- **Environment Management**: Easy configuration updates
+- **GitHub Integration**: Auto-deploy from your repository
+
+### Pricing
+
+Railway offers:
+- **Developer Plan**: $5/month for hobby projects
+- **Team Plan**: $20/month per seat
+- **Pay-as-you-go**: Usage-based pricing
+
+<Info>
+Railway provides $5 of free credits to get started. Typical LibreChat deployment costs $10-20/month depending on usage.
+</Info>
+
+### Custom Domain
+
+To add a custom domain:
+
+1. Go to your Railway project settings
+2. Navigate to **Domains**
+3. Add your domain and configure DNS:
+
+```
+CNAME record: your-domain.com → your-app.up.railway.app
+```
+
+## Zeabur Deployment
+
+[Zeabur](https://zeabur.com) provides edge-optimized deployment with global CDN and automatic scaling.
+
+### Quick Deploy
+
+<Steps>
+
+<Step title="Deploy with Template">
+
+Click the button below to deploy LibreChat to Zeabur:
+
+<a href="https://zeabur.com/templates/0X2ZY8" target="_blank">
+  <img src="https://zeabur.com/button.svg" alt="Deploy on Zeabur" height="30" />
+</a>
+
+</Step>
+
+<Step title="Select Region">
+
+Zeabur will ask you to choose a deployment region:
+- **Asia Pacific**: Singapore, Tokyo, Hong Kong
+- **Europe**: Frankfurt
+- **North America**: San Francisco, New York
+
+Choose the region closest to your users for optimal performance.
+
+</Step>
+
+<Step title="Configure Services">
+
+Zeabur automatically provisions:
+- LibreChat application
+- MongoDB database
+- Meilisearch search engine
+- PostgreSQL with pgvector
+- RAG API service
+
+</Step>
+
+<Step title="Set Environment Variables">
+
+Configure required variables in the Zeabur dashboard:
+
+```bash
+# Generate secrets with: openssl rand -hex 32
+JWT_SECRET=your-jwt-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+CREDS_KEY=your-creds-key
+CREDS_IV=your-creds-iv  # openssl rand -hex 16
+
+# Meilisearch
+MEILI_MASTER_KEY=your-meili-key
+
+# AI Provider Keys
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+</Step>
+
+</Steps>
+
+### Features
+
+- **Edge Network**: Global CDN for low latency
+- **Auto Scaling**: Horizontal scaling based on load
+- **Managed Services**: All dependencies included
+- **Custom Domains**: Easy domain configuration
+- **SSL Certificates**: Automatic HTTPS
+- **Team Collaboration**: Multi-user access
+
+### Pricing
+
+Zeabur pricing:
+- **Developer**: $5/month (includes $5 credit)
+- **Team**: $20/month per member
+- **Enterprise**: Custom pricing
+
+<Note>
+Zeabur offers a 14-day free trial for new users. LibreChat typically costs $8-15/month for light usage.
+</Note>
+
+### Monitoring
+
+Zeabur provides built-in monitoring:
+- Request logs and metrics
+- CPU and memory usage
+- Database performance
+- Error tracking
+
+## Sealos Deployment
+
+[Sealos](https://sealos.io) is a Kubernetes-based cloud operating system that provides a complete application runtime environment.
+
+### Quick Deploy
+
+<Steps>
+
+<Step title="Deploy with Template">
+
+Click the button below to deploy LibreChat to Sealos:
+
+<a href="https://template.cloud.sealos.io/deploy?templateName=librechat" target="_blank">
+  <img src="https://raw.githubusercontent.com/labring-actions/templates/main/Deploy-on-Sealos.svg" alt="Deploy on Sealos" height="30" />
+</a>
+
+</Step>
+
+<Step title="Configure Resources">
+
+Sealos allows you to configure compute resources:
+
+```yaml
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+```
+
+</Step>
+
+<Step title="Set Up Storage">
+
+Configure persistent volumes:
+
+```yaml
+persistence:
+  images:
+    size: 10Gi
+  uploads:
+    size: 5Gi
+  mongodb:
+    size: 20Gi
+```
+
+</Step>
+
+<Step title="Configure Environment">
+
+Add environment variables through the Sealos dashboard:
+
+```bash
+# Authentication
+JWT_SECRET=your-jwt-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+CREDS_KEY=your-creds-key
+CREDS_IV=your-creds-iv
+
+# Database
+MONGO_URI=mongodb://mongodb:27017/LibreChat
+
+# Search
+MEILI_HOST=http://meilisearch:7700
+MEILI_MASTER_KEY=your-meili-key
+
+# AI Providers
+OPENAI_API_KEY=your-key
+```
+
+</Step>
+
+<Step title="Deploy Application">
+
+Click **Deploy** and Sealos will:
+- Create Kubernetes pods for all services
+- Configure internal networking
+- Set up ingress for external access
+- Provision persistent volumes
+
+</Step>
+
+</Steps>
+
+### Features
+
+- **Kubernetes Native**: Full K8s cluster access
+- **Resource Control**: Fine-grained CPU/memory limits
+- **Auto Healing**: Automatic pod recovery
+- **Horizontal Scaling**: Manual or auto-scaling
+- **Persistent Storage**: Multiple volume types
+- **Custom Networking**: Advanced ingress configuration
+
+### Architecture on Sealos
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: librechat
+spec:
+  selector:
+    app: librechat
+  ports:
+    - port: 3080
+      targetPort: 3080
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librechat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: librechat
+  template:
+    metadata:
+      labels:
+        app: librechat
+    spec:
+      containers:
+      - name: librechat
+        image: registry.librechat.ai/danny-avila/librechat:latest
+        ports:
+        - containerPort: 3080
+        env:
+        - name: MONGO_URI
+          value: mongodb://mongodb:27017/LibreChat
+```
+
+### Pricing
+
+Sealos uses pay-as-you-go pricing:
+- **Compute**: $0.045/core/hour
+- **Memory**: $0.005/GB/hour
+- **Storage**: $0.10/GB/month
+- **Traffic**: $0.10/GB outbound
+
+<Info>
+A typical LibreChat deployment (1 core, 2GB RAM, 20GB storage) costs approximately $30-40/month on Sealos.
+</Info>
+
+## Platform Comparison
+
+| Feature | Railway | Zeabur | Sealos |
+|---------|---------|--------|--------|
+| **Ease of Setup** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Customization** | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Managed Services** | ✅ | ✅ | ✅ |
+| **Auto Scaling** | ✅ | ✅ | ✅ |
+| **Custom Domains** | ✅ | ✅ | ✅ |
+| **SSL Certificates** | Auto | Auto | Auto |
+| **Kubernetes Access** | ❌ | ❌ | ✅ |
+| **Global CDN** | ✅ | ✅ | ❌ |
+| **Pricing (monthly)** | $10-20 | $8-15 | $30-40 |
+| **Free Trial** | $5 credit | 14 days | Usage-based |
+
+## Best Use Cases
+
+### Railway
+**Best for**: Quick prototypes, hobby projects, startups
+- Fastest setup time
+- Generous free tier
+- Great for testing
+
+### Zeabur
+**Best for**: Production apps, global audience, edge performance
+- Edge network for low latency
+- Best performance globally
+- Affordable pricing
+
+### Sealos
+**Best for**: Enterprise deployments, complex requirements, full control
+- Complete Kubernetes access
+- Fine-grained resource control
+- Advanced networking options
+
+## Environment Variable Generation
+
+All platforms require secure secrets. Generate them with:
+
+```bash
+# JWT secrets (32-byte hex)
+openssl rand -hex 32
+
+# Credentials IV (16-byte hex)
+openssl rand -hex 16
+
+# Or use a secret generator
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+<Warning>
+Never use default or example values in production. Always generate unique secrets for each deployment.
+</Warning>
+
+## Post-Deployment Steps
+
+<Steps>
+
+<Step title="Verify Deployment">
+
+Check that all services are running:
+- Visit your application URL
+- Register a new account
+- Test chat functionality
+
+</Step>
+
+<Step title="Configure AI Providers">
+
+Add API keys for your preferred providers:
+- OpenAI
+- Anthropic (Claude)
+- Google (Gemini)
+- Azure OpenAI
+
+</Step>
+
+<Step title="Set Up Custom Domain">
+
+Configure your domain DNS:
+
+```
+CNAME: chat.yourdomain.com → your-app.platform.com
+```
+
+</Step>
+
+<Step title="Enable Features">
+
+Configure optional features:
+- User registration settings
+- OAuth providers (Google, GitHub)
+- File upload limits
+- RAG functionality
+
+</Step>
+
+</Steps>
+
+## Troubleshooting
+
+### Deployment Fails
+
+1. Check environment variables are set correctly
+2. Verify API keys are valid
+3. Check service logs in platform dashboard
+
+### Database Connection Issues
+
+1. Verify `MONGO_URI` format
+2. Check database service is running
+3. Ensure network connectivity between services
+
+### Performance Issues
+
+1. Increase resource limits (CPU/RAM)
+2. Enable auto-scaling
+3. Add Redis for caching
+
+## Migration Between Platforms
+
+To migrate from one platform to another:
+
+<Steps>
+
+<Step title="Export Data">
+
+```bash
+# Export MongoDB
+mongodump --uri="mongodb://..." --out=./backup
+
+# Export files
+tar -czf uploads.tar.gz uploads/ images/
+```
+
+</Step>
+
+<Step title="Deploy to New Platform">
+
+Use the one-click deployment for your target platform.
+
+</Step>
+
+<Step title="Import Data">
+
+```bash
+# Import MongoDB
+mongorestore --uri="mongodb://..." ./backup
+
+# Upload files to new storage
+```
+
+</Step>
+
+<Step title="Update DNS">
+
+Point your domain to the new platform.
+
+</Step>
+
+</Steps>
+
+## Next Steps
+
+- Configure [custom endpoints](/configuration/custom-endpoints)
+- Set up [OAuth authentication](/configuration/authentication)
+- Explore [Kubernetes deployment](/deployment/kubernetes) for advanced scaling

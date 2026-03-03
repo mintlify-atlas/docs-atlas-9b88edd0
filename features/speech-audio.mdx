@@ -1,0 +1,433 @@
+---
+title: Speech & Audio
+description: Enable text-to-speech (TTS) and speech-to-text (STT) for voice interactions in LibreChat
+---
+
+## Overview
+
+LibreChat supports bidirectional voice interactions through Text-to-Speech (TTS) for reading AI responses aloud and Speech-to-Text (STT) for voice input. This enables hands-free conversations and accessibility features.
+
+## Text-to-Speech (TTS)
+
+Have AI responses read aloud with natural-sounding voices.
+
+### Supported TTS Providers
+
+<Tabs>
+  <Tab title="Browser TTS (Default)">
+    Uses the browser's built-in speech synthesis:
+    
+    - **No configuration required**
+    - Works offline
+    - Voice quality depends on browser/OS
+    - No API costs
+    
+    Automatically available in all conversations.
+  </Tab>
+  
+  <Tab title="OpenAI TTS">
+    High-quality voices from OpenAI:
+    
+    ```yaml
+    # librechat.yaml
+    speech:
+      tts:
+        openai:
+          url: ''  # Optional custom endpoint
+          apiKey: '${TTS_API_KEY}'
+          model: 'tts-1'  # or 'tts-1-hd'
+          voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    ```
+    
+    Available voices:
+    - **alloy**: Neutral, balanced
+    - **echo**: Male, clear
+    - **fable**: British accent, expressive
+    - **onyx**: Deep, authoritative
+    - **nova**: Energetic, youthful
+    - **shimmer**: Warm, friendly
+  </Tab>
+  
+  <Tab title="Custom TTS Provider">
+    Use any OpenAI-compatible TTS API:
+    
+    ```yaml
+    speech:
+      tts:
+        openai:
+          url: 'https://your-tts-provider.com/v1'
+          apiKey: '${TTS_API_KEY}'
+          model: 'your-model'
+          voices: ['voice1', 'voice2']
+    ```
+  </Tab>
+</Tabs>
+
+### Using TTS
+
+<Steps>
+  <Step title="Enable TTS">
+    Look for the speaker icon in the message header or message footer.
+  </Step>
+  
+  <Step title="Click Read Aloud">
+    Click the speaker icon to have the message read aloud.
+  </Step>
+  
+  <Step title="Control Playback">
+    - **Pause/Resume**: Click the icon again
+    - **Stop**: Click the mute icon
+    - **Adjust speed**: Use the playback rate control in settings
+  </Step>
+</Steps>
+
+### Playback Speed
+
+Control audio playback rate:
+
+```typescript
+// Recoil state for playback speed
+playbackRate: 1.0  // Range: 0.5 to 2.0
+```
+
+Adjust in user settings:
+- **0.5x**: Slower (better comprehension)
+- **1.0x**: Normal speed
+- **1.5x**: Faster
+- **2.0x**: Maximum speed
+
+### Auto-Play
+
+Configure automatic TTS for new messages:
+
+```yaml
+# Feature currently user-controlled via settings
+# Auto-play last message when enabled
+```
+
+## Speech-to-Text (STT)
+
+Use your voice as input instead of typing.
+
+### Supported STT Providers
+
+<Tabs>
+  <Tab title="Browser STT">
+    Uses browser's built-in speech recognition:
+    
+    - **No configuration required**
+    - Works with Chrome, Edge, Safari
+    - Limited browser support
+    - Requires microphone permission
+  </Tab>
+  
+  <Tab title="OpenAI Whisper">
+    High-accuracy transcription via OpenAI Whisper:
+    
+    ```yaml
+    # librechat.yaml
+    speech:
+      stt:
+        openai:
+          url: ''  # Optional custom endpoint
+          apiKey: '${STT_API_KEY}'
+          model: 'whisper-1'
+    ```
+    
+    Features:
+    - Multi-language support
+    - High accuracy
+    - Handles accents and noise well
+    - API-based (requires costs)
+  </Tab>
+</Tabs>
+
+### Using STT
+
+<Steps>
+  <Step title="Enable Microphone">
+    Grant microphone permission when prompted by your browser.
+  </Step>
+  
+  <Step title="Click Microphone Icon">
+    Find the microphone button in the message input area.
+  </Step>
+  
+  <Step title="Speak Your Message">
+    Speak clearly into your microphone. The transcription appears in real-time.
+  </Step>
+  
+  <Step title="Send or Edit">
+    - Click **Send** to submit the transcription
+    - Edit the text before sending if needed
+  </Step>
+</Steps>
+
+<Tip>
+  For best results with STT:
+  - Use a quality microphone
+  - Minimize background noise
+  - Speak at a normal pace
+  - Enunciate clearly
+</Tip>
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# .env
+STT_API_KEY=your-openai-key-for-stt
+TTS_API_KEY=your-openai-key-for-tts
+```
+
+### Complete Speech Configuration
+
+```yaml
+# librechat.yaml
+speech:
+  # Text-to-Speech
+  tts:
+    openai:
+      url: 'https://api.openai.com/v1'  # Optional
+      apiKey: '${TTS_API_KEY}'
+      model: 'tts-1-hd'  # or 'tts-1' for faster/cheaper
+      voices:
+        - 'alloy'
+        - 'echo'
+        - 'fable'
+        - 'onyx'
+        - 'nova'
+        - 'shimmer'
+  
+  # Speech-to-Text
+  stt:
+    openai:
+      url: 'https://api.openai.com/v1'  # Optional
+      apiKey: '${STT_API_KEY}'
+      model: 'whisper-1'
+```
+
+## Audio Features
+
+### Audio Element
+
+TTS uses HTML5 audio elements:
+
+```typescript
+// Audio playback with controls
+<audio
+  id={`audio-${messageId}`}
+  ref={audioRef}
+  hidden
+  preload="none"
+>
+  <source src={audioUrl} type="audio/mpeg" />
+</audio>
+```
+
+### Voice Selection
+
+Choose from available TTS voices:
+
+```typescript
+// Voice selector component
+<Voices
+  voices={['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']}
+  selectedVoice={userPreference}
+  onChange={handleVoiceChange}
+/>
+```
+
+## Rate Limiting
+
+Control speech API usage:
+
+```bash
+# .env
+TTS_VIOLATION_SCORE=0  # No rate limiting by default
+STT_VIOLATION_SCORE=0  # Adjust as needed
+```
+
+<Warning>
+  TTS and STT API calls can add up quickly. Monitor usage and set appropriate rate limits.
+</Warning>
+
+## Accessibility
+
+Speech features enhance accessibility:
+
+- **Screen reader friendly**: ARIA labels on all controls
+- **Keyboard navigation**: Full keyboard support
+- **Visual feedback**: Clear indication of recording/playback state
+- **Captions**: Transcriptions appear as text
+
+```typescript
+// Accessibility attributes
+aria-label="Read aloud"
+aria-haspopup="false"
+title="Click to read this message"
+```
+
+## Browser Compatibility
+
+<Tabs>
+  <Tab title="TTS Support">
+    - **Chrome**: Full support (built-in + API)
+    - **Firefox**: Built-in only
+    - **Safari**: Built-in only
+    - **Edge**: Full support
+    - **Mobile**: Limited (iOS Safari, Chrome Android)
+  </Tab>
+  
+  <Tab title="STT Support">
+    - **Chrome**: Full support
+    - **Edge**: Full support
+    - **Firefox**: Limited
+    - **Safari**: iOS only
+    - **Mobile**: Varies by browser
+  </Tab>
+</Tabs>
+
+## Performance Optimization
+
+### Audio Caching
+
+TTS audio can be cached to reduce API calls:
+
+```typescript
+// Audio source caching
+const audioCache = new Map<string, string>();
+```
+
+### Lazy Loading
+
+Audio elements load only when needed:
+
+```html
+<audio preload="none" />
+```
+
+### Throttling
+
+Prevent spam by throttling requests:
+
+```typescript
+// Rate limiting for TTS/STT
+limit: 40,
+window: 60000  // 1 minute
+```
+
+## Use Cases
+
+<Accordion title="Accessibility">
+  - Screen reader users
+  - Visual impairments
+  - Reading difficulties
+  - Language learning
+</Accordion>
+
+<Accordion title="Hands-Free Operation">
+  - Driving
+  - Cooking
+  - Multitasking
+  - Mobile usage
+</Accordion>
+
+<Accordion title="Content Consumption">
+  - Long-form content
+  - Educational material
+  - News summaries
+  - Podcast-style listening
+</Accordion>
+
+<Accordion title="Voice Input">
+  - Faster than typing
+  - Mobile convenience
+  - Accessibility
+  - Multilingual input
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="TTS not working">
+  - Check API key configuration
+  - Verify browser supports audio playback
+  - Check volume/mute settings
+  - Look for errors in browser console
+</Accordion>
+
+<Accordion title="No sound output">
+  - Check device volume
+  - Verify audio output device
+  - Test browser audio (e.g., YouTube)
+  - Check for browser audio permission
+</Accordion>
+
+<Accordion title="STT not recognizing speech">
+  - Grant microphone permission
+  - Check microphone is working (test in another app)
+  - Reduce background noise
+  - Speak clearly and at moderate speed
+  - Try refreshing the page
+</Accordion>
+
+<Accordion title="Poor voice quality">
+  - Use `tts-1-hd` model for better quality
+  - Check network connection
+  - Try different voice options
+  - For browser TTS, quality depends on OS
+</Accordion>
+
+<Accordion title="High API costs">
+  - Use browser TTS instead of API
+  - Limit TTS to important messages
+  - Set rate limits
+  - Monitor usage in OpenAI dashboard
+</Accordion>
+
+## Best Practices
+
+<Tip>
+  - **Default to browser TTS**: Lower costs, works offline
+  - **Use API TTS for quality**: When professional voice matters
+  - **Enable selectively**: Don't auto-play all messages
+  - **Optimize voice choice**: Match voice to use case
+  - **Monitor costs**: TTS/STT can be expensive at scale
+  - **Provide text fallback**: Always show text alongside audio
+</Tip>
+
+## Configuration Reference
+
+```yaml
+# librechat.yaml
+speech:
+  tts:
+    openai:
+      url: '${TTS_BASE_URL}'
+      apiKey: '${TTS_API_KEY}'
+      model: 'tts-1-hd'
+      voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+  
+  stt:
+    openai:
+      url: '${STT_BASE_URL}'
+      apiKey: '${STT_API_KEY}'
+      model: 'whisper-1'
+```
+
+```bash
+# .env
+TTS_API_KEY=your-tts-key
+STT_API_KEY=your-stt-key
+
+# Rate limiting
+TTS_VIOLATION_SCORE=0
+STT_VIOLATION_SCORE=0
+```
+
+## Related Features
+
+- [Multimodal Chat](/features/multimodal-chat)
+- [Agents](/features/agents)
+- [Conversation Management](/features/conversation-management)

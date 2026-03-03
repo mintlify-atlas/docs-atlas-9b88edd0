@@ -1,0 +1,558 @@
+---
+title: Token Management
+description: Manage user token balances, credits, and usage tracking for LibreChat AI endpoint consumption
+---
+
+LibreChat includes a token balance system to track and limit user consumption of AI endpoints. This guide covers balance configuration, management scripts, and usage monitoring.
+
+## Balance System Overview
+
+The balance system provides:
+
+- **Token Credits** - Virtual currency for API usage
+- **Usage Tracking** - Monitor consumption per user
+- **Transaction History** - Audit trail of balance changes
+- **Balance Limits** - Prevent excessive usage
+- **Administrative Controls** - Manage credits via CLI
+
+## Enable Balance System
+
+Configure the balance system in `librechat.yaml`:
+
+```yaml librechat.yaml
+balance:
+  enabled: true
+```
+
+<Note>
+  The balance system must be enabled in `librechat.yaml` before using balance management commands.
+</Note>
+
+### Get Balance Configuration
+
+Retrieve the balance configuration programmatically:
+
+```javascript
+const { getBalanceConfig } = require('@librechat/api');
+const { getAppConfig } = require('~/server/services/Config');
+
+const appConfig = await getAppConfig();
+const balanceConfig = getBalanceConfig(appConfig);
+
+if (!balanceConfig?.enabled) {
+  console.log('Balance system is not enabled');
+}
+```
+
+## Balance Management Commands
+
+All balance operations are available through npm scripts:
+
+```json package.json
+"scripts": {
+  "add-balance": "node config/add-balance.js",
+  "set-balance": "node config/set-balance.js",
+  "list-balances": "node config/list-balances.js"
+}
+```
+
+## Adding Balance
+
+Add credits to a user's balance:
+
+```bash
+npm run add-balance <email> <amount>
+```
+
+### Examples
+
+<CodeGroup>
+```bash Add 1000 credits
+npm run add-balance user@example.com 1000
+```
+
+```bash Interactive mode
+npm run add-balance
+# Email: user@example.com
+# amount: 1000 (default if empty)
+```
+
+```bash Large credit addition
+npm run add-balance admin@example.com 100000
+```
+</CodeGroup>
+
+### Output
+
+```
+--------------------------
+Add balance to a user account!
+--------------------------
+Found user: user@example.com
+Transaction created successfully!
+Amount: 1000
+New Balance: 5000
+```
+
+### Script Implementation
+
+The add-balance script (`config/add-balance.js`) creates a transaction:
+
+```javascript config/add-balance.js
+const { createTransaction } = require('~/models/Transaction');
+const { getBalanceConfig } = require('@librechat/api');
+
+const result = await createTransaction({
+  user: user._id,
+  tokenType: 'credits',
+  context: 'admin',
+  rawAmount: +amount,
+  balance: balanceConfig,
+});
+
+console.log(`Amount: ${amount}`);
+console.log(`New Balance: ${result.balance}`);
+```
+
+<Note>
+  Adding balance creates a transaction record in the database with context 'admin' for audit purposes.
+</Note>
+
+## Setting Balance
+
+Set a user's balance to a specific value (overwrites current balance):
+
+```bash
+npm run set-balance <email> <amount>
+```
+
+### Examples
+
+<CodeGroup>
+```bash Set to specific value
+npm run set-balance user@example.com 5000
+```
+
+```bash Reset to zero
+npm run set-balance user@example.com 0
+```
+
+```bash Interactive mode
+npm run set-balance
+# Email: user@example.com
+# Current Balance: 3500
+# amount: 5000
+```
+</CodeGroup>
+
+### Output
+
+```
+--------------------------
+Set balance to a user account!
+--------------------------
+Found user: user@example.com
+Current Balance: 3500
+Balance set successfully!
+New Balance: 5000
+```
+
+### Script Implementation
+
+```javascript config/set-balance.js
+const { Balance } = require('@librechat/data-schemas').createModels(mongoose);
+
+let balance = await Balance.findOne({ user: user._id }).lean();
+if (!balance) {
+  console.log('User has no balance!');
+} else {
+  console.log(`Current Balance: ${balance.tokenCredits}`);
+}
+
+const result = await Balance.findOneAndUpdate(
+  { user: user._id },
+  { tokenCredits: amount },
+  { upsert: true, new: true },
+).lean();
+
+console.log(`New Balance: ${result.tokenCredits}`);
+```
+
+<Warning>
+  Setting balance directly overwrites the current value and does not create a transaction record. Use add-balance for auditable credit additions.
+</Warning>
+
+## Listing Balances
+
+View balances for all users:
+
+```bash
+npm run list-balances
+```
+
+### Output
+
+```
+-----------------------------
+Show the balance of all users
+-----------------------------
+User Admin User (admin@example.com) has a balance of 10000
+User John Doe (john@example.com) has a balance of 5000
+User Jane Smith (jane@example.com) has no balance
+User Bob Wilson (bob@example.com) has a balance of 2500
+```
+
+### Script Implementation
+
+```javascript config/list-balances.js
+const { User, Balance } = require('@librechat/data-schemas').createModels(mongoose);
+
+let users = await User.find({});
+for (const user of users) {
+  let balance = await Balance.findOne({ user: user._id });
+  if (balance !== null) {
+    console.log(`User ${user.name} (${user.email}) has a balance of ${balance.tokenCredits}`);
+  } else {
+    console.log(`User ${user.name} (${user.email}) has no balance`);
+  }
+}
+```
+
+## Balance Model
+
+The Balance model stores user credit information:
+
+```javascript
+const Balance = mongoose.model('Balance', {
+  user: ObjectId,           // Reference to User
+  tokenCredits: Number,     // Current balance
+  createdAt: Date,
+  updatedAt: Date,
+});
+```
+
+## Transaction Model
+
+Transactions provide an audit trail of balance changes:
+
+```javascript
+const Transaction = mongoose.model('Transaction', {
+  user: ObjectId,           // Reference to User
+  conversationId: ObjectId, // Optional: related conversation
+  model: String,           // AI model used (e.g., 'gpt-4')
+  context: String,         // 'message', 'admin', 'system'
+  rawAmount: Number,       // Raw token count
+  tokenType: String,       // 'credits', 'prompt', 'completion'
+  rate: Number,            // Cost per token
+  amount: Number,          // Calculated cost
+  balance: Number,         // Balance after transaction
+  createdAt: Date,
+});
+```
+
+### Transaction Contexts
+
+- **message** - Tokens consumed by AI message generation
+- **admin** - Manual balance adjustment by administrator
+- **system** - Automatic system adjustments (refunds, corrections)
+
+## Usage Tracking
+
+Monitor user token consumption:
+
+### View User Statistics
+
+```bash
+npm run user-stats
+```
+
+Displays aggregate statistics including token usage per user.
+
+### Query Transaction History
+
+Use MongoDB queries to analyze usage:
+
+```javascript
+// Total spent by user
+const totalSpent = await Transaction.aggregate([
+  { $match: { user: userId, amount: { $lt: 0 } } },
+  { $group: { _id: null, total: { $sum: '$amount' } } }
+]);
+
+// Usage by model
+const modelUsage = await Transaction.aggregate([
+  { $match: { user: userId } },
+  { $group: { _id: '$model', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+  { $sort: { total: -1 } }
+]);
+
+// Recent transactions
+const recent = await Transaction.find({ user: userId })
+  .sort({ createdAt: -1 })
+  .limit(10)
+  .populate('conversationId', 'title');
+```
+
+## Token Costs and Rates
+
+Configure token costs in `librechat.yaml`:
+
+```yaml librechat.yaml
+balance:
+  enabled: true
+  tokenCost:
+    gpt-4:
+      prompt: 0.03    # per 1K tokens
+      completion: 0.06
+    gpt-3.5-turbo:
+      prompt: 0.0015
+      completion: 0.002
+    claude-3-opus:
+      prompt: 0.015
+      completion: 0.075
+```
+
+### Calculating Costs
+
+Transactions automatically calculate costs based on rates:
+
+```javascript
+const { createTransaction } = require('~/models/Transaction');
+
+await createTransaction({
+  user: userId,
+  conversationId: convId,
+  model: 'gpt-4',
+  context: 'message',
+  tokenType: 'prompt',
+  rawAmount: 1500,        // tokens used
+  balance: balanceConfig,  // includes rate information
+});
+
+// Calculates: 1500 tokens * 0.03 / 1000 = 0.045 credits
+// Deducts from user balance
+```
+
+## Balance Enforcement
+
+Prevent usage when balance is insufficient:
+
+```javascript
+const { Balance } = require('@librechat/data-schemas').createModels(mongoose);
+
+const checkBalance = async (userId, estimatedCost) => {
+  const balance = await Balance.findOne({ user: userId });
+  
+  if (!balance || balance.tokenCredits < estimatedCost) {
+    throw new Error('Insufficient credits. Please contact your administrator.');
+  }
+  
+  return true;
+};
+
+// Before processing request
+await checkBalance(req.user._id, estimatedTokenCost);
+```
+
+## Initial Balance for New Users
+
+Set default balance for new registrations in `librechat.yaml`:
+
+```yaml librechat.yaml
+balance:
+  enabled: true
+  initialBalance: 1000  # Starting credits for new users
+```
+
+### Programmatic Assignment
+
+```javascript
+const { createUser } = require('~/models');
+const { getBalanceConfig } = require('@librechat/api');
+
+const balanceConfig = getBalanceConfig(appConfig);
+const userId = await createUser(userData, balanceConfig);
+
+// Creates user with initial balance if configured
+```
+
+## Bulk Balance Operations
+
+For batch balance management, create custom scripts:
+
+### Example: Grant Credits to All Users
+
+```javascript grant-credits-all.js
+const mongoose = require('mongoose');
+const { User } = require('@librechat/data-schemas').createModels(mongoose);
+const { createTransaction } = require('~/models/Transaction');
+const { getBalanceConfig } = require('@librechat/api');
+const connect = require('./config/connect');
+
+(async () => {
+  await connect();
+  
+  const balanceConfig = getBalanceConfig(await getAppConfig());
+  const users = await User.find({});
+  const amount = 5000;
+  
+  for (const user of users) {
+    await createTransaction({
+      user: user._id,
+      tokenType: 'credits',
+      context: 'admin',
+      rawAmount: amount,
+      balance: balanceConfig,
+    });
+    console.log(`Added ${amount} credits to ${user.email}`);
+  }
+  
+  process.exit(0);
+})();
+```
+
+### Example: Reset Balances Monthly
+
+```javascript reset-balances-monthly.js
+const { Balance } = require('@librechat/data-schemas').createModels(mongoose);
+
+const monthlyAllowance = 10000;
+
+await Balance.updateMany(
+  {},
+  { tokenCredits: monthlyAllowance }
+);
+
+console.log(`Reset all balances to ${monthlyAllowance}`);
+```
+
+## Monitoring and Alerts
+
+### Low Balance Notification
+
+```javascript
+const checkLowBalance = async (userId, threshold = 100) => {
+  const balance = await Balance.findOne({ user: userId });
+  
+  if (balance && balance.tokenCredits < threshold) {
+    // Send notification
+    await sendEmail({
+      to: user.email,
+      subject: 'Low Credit Balance',
+      body: `Your balance is low: ${balance.tokenCredits} credits remaining.`,
+    });
+  }
+};
+```
+
+### Usage Reports
+
+```javascript
+const generateUsageReport = async (userId, startDate, endDate) => {
+  const transactions = await Transaction.find({
+    user: userId,
+    createdAt: { $gte: startDate, $lte: endDate },
+    amount: { $lt: 0 }, // Only debits
+  });
+  
+  const totalSpent = transactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+  const byModel = {};
+  
+  transactions.forEach(tx => {
+    byModel[tx.model] = (byModel[tx.model] || 0) + Math.abs(tx.amount);
+  });
+  
+  return { totalSpent, byModel, transactionCount: transactions.length };
+};
+```
+
+## Best Practices
+
+<Warning>
+  Follow these guidelines when managing token balances:
+</Warning>
+
+- Enable balance system before deploying to production
+- Set appropriate token costs reflecting actual API expenses
+- Provide adequate initial balance for user testing
+- Monitor usage patterns to adjust pricing
+- Create transaction records for all manual balance changes
+- Implement low-balance notifications for users
+- Use add-balance (not set-balance) for audit trail
+- Back up transaction history regularly
+- Set up automated monthly balance resets if applicable
+- Document balance policies in user-facing documentation
+- Implement usage caps for trial or free-tier users
+- Review high-usage accounts for optimization opportunities
+
+## Bun Alternative Commands
+
+For Bun runtime:
+
+```json package.json
+"scripts": {
+  "b:balance": "bun config/add-balance.js",
+  "b:list-balances": "bun config/list-balances.js"
+}
+```
+
+Usage:
+
+```bash
+bun run b:balance user@example.com 1000
+bun run b:list-balances
+```
+
+## Troubleshooting
+
+### Balance Not Enabled Error
+
+```
+Error: Balance is not enabled. Use librechat.yaml to enable it
+```
+
+**Solution:** Add to `librechat.yaml`:
+
+```yaml librechat.yaml
+balance:
+  enabled: true
+```
+
+### User Has No Balance
+
+New users may not have a balance record:
+
+```bash
+# Initialize with set-balance
+npm run set-balance user@example.com 1000
+```
+
+### Transaction Not Creating
+
+Check balance configuration is passed:
+
+```javascript
+const balanceConfig = getBalanceConfig(appConfig);
+if (!balanceConfig?.enabled) {
+  throw new Error('Balance system not configured');
+}
+
+await createTransaction({
+  // ... transaction data
+  balance: balanceConfig, // Required
+});
+```
+
+### Negative Balance
+
+Users can't make requests with negative balance. Reset:
+
+```bash
+npm run set-balance user@example.com 1000
+```
+
+## Next Steps
+
+- [Authentication Setup](/user-management/authentication-setup) - Configure user authentication
+- [User Administration](/user-management/user-administration) - Manage user accounts
+- [Permissions](/user-management/permissions) - Configure access control

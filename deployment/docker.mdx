@@ -1,0 +1,308 @@
+---
+title: Docker Deployment
+description: Deploy LibreChat using Docker with a single container setup
+---
+
+LibreChat can be deployed using Docker with a single container that includes both the backend API and frontend client. This is the simplest deployment method for getting started quickly.
+
+## Prerequisites
+
+Before deploying LibreChat with Docker, ensure you have:
+
+- Docker Engine 20.10 or later
+- Docker Compose (optional, for multi-container setup)
+- At least 2GB of available RAM
+- 10GB of free disk space
+
+## Dockerfile Overview
+
+LibreChat uses a multi-stage Dockerfile optimized for production deployment. The build process includes:
+
+<CodeGroup>
+```dockerfile Dockerfile
+# Base node image
+FROM node:20-alpine AS node
+
+# Install jemalloc for memory optimization
+RUN apk add --no-cache jemalloc
+RUN apk add --no-cache python3 py3-pip uv
+
+# Set environment variable to use jemalloc
+ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
+
+# Add uv for extended MCP support
+COPY --from=ghcr.io/astral-sh/uv:0.9.5-python3.12-alpine /usr/local/bin/uv /usr/local/bin/uvx /bin/
+
+# Set configurable max-old-space-size with default
+ARG NODE_MAX_OLD_SPACE_SIZE=6144
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY api/package.json ./api/package.json
+COPY client/package.json ./client/package.json
+COPY packages/data-provider/package.json ./packages/data-provider/package.json
+COPY packages/data-schemas/package.json ./packages/data-schemas/package.json
+COPY packages/api/package.json ./packages/api/package.json
+
+# Install dependencies
+RUN npm ci --no-audit
+
+# Copy application code
+COPY . .
+
+# Build frontend with configurable memory
+RUN NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" npm run frontend
+
+# Node API setup
+EXPOSE 3080
+ENV HOST=0.0.0.0
+CMD ["npm", "run", "backend"]
+```
+</CodeGroup>
+
+## Building the Image
+
+<Steps>
+
+<Step title="Clone the Repository">
+
+First, clone the LibreChat repository:
+
+```bash
+git clone https://github.com/danny-avila/LibreChat.git
+cd LibreChat
+```
+
+</Step>
+
+<Step title="Build the Docker Image">
+
+Build the Docker image with default settings:
+
+```bash
+docker build -t librechat .
+```
+
+To customize the Node.js memory allocation:
+
+```bash
+docker build --build-arg NODE_MAX_OLD_SPACE_SIZE=8192 -t librechat .
+```
+
+</Step>
+
+<Step title="Configure Environment Variables">
+
+Create a `.env` file with your configuration:
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file with your API keys and configuration:
+
+```bash
+# MongoDB Connection
+MONGO_URI=mongodb://mongodb:27017/LibreChat
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=3080
+
+# Authentication
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret
+CREDS_KEY=your-creds-key
+CREDS_IV=your-creds-iv
+
+# Meilisearch
+MEILI_HOST=http://meilisearch:7700
+MEILI_MASTER_KEY=your-meili-key
+
+# API Keys
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+</Step>
+
+<Step title="Run the Container">
+
+Run LibreChat with required dependencies:
+
+```bash
+docker run -d \
+  --name librechat \
+  -p 3080:3080 \
+  --env-file .env \
+  -v ./images:/app/client/public/images \
+  -v ./uploads:/app/uploads \
+  -v ./logs:/app/logs \
+  librechat
+```
+
+</Step>
+
+</Steps>
+
+## Port Configuration
+
+LibreChat exposes the following port:
+
+| Port | Protocol | Description |
+|------|----------|-------------|
+| 3080 | HTTP | Main application server (API + Frontend) |
+
+<Note>
+The default port is `3080`. You can change this by setting the `PORT` environment variable and adjusting the `EXPOSE` directive in the Dockerfile.
+</Note>
+
+## Volume Mounts
+
+The following directories should be mounted as volumes for persistent data:
+
+| Host Path | Container Path | Purpose |
+|-----------|----------------|----------|
+| `./images` | `/app/client/public/images` | User-uploaded images |
+| `./uploads` | `/app/uploads` | File uploads |
+| `./logs` | `/app/logs` | Application logs |
+
+<Warning>
+Always mount these directories to persist data across container restarts. Without volume mounts, all uploaded files and logs will be lost when the container stops.
+</Warning>
+
+## Environment Variables
+
+Key environment variables for Docker deployment:
+
+### Required Variables
+
+```bash
+# Application Host
+HOST=0.0.0.0
+
+# MongoDB Connection
+MONGO_URI=mongodb://mongodb:27017/LibreChat
+
+# Authentication Secrets
+JWT_SECRET=your-jwt-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+CREDS_KEY=your-creds-key
+CREDS_IV=your-creds-iv
+```
+
+### Optional Variables
+
+```bash
+# Meilisearch Configuration
+MEILI_HOST=http://meilisearch:7700
+MEILI_MASTER_KEY=your-master-key
+
+# RAG API Configuration
+RAG_PORT=8000
+RAG_API_URL=http://rag_api:8000
+
+# Node.js Memory
+NODE_OPTIONS=--max-old-space-size=6144
+```
+
+## Using Pre-built Images
+
+Instead of building locally, you can use official pre-built images:
+
+```bash
+docker pull registry.librechat.ai/danny-avila/librechat-dev:latest
+
+docker run -d \
+  --name librechat \
+  -p 3080:3080 \
+  --env-file .env \
+  -v ./images:/app/client/public/images \
+  -v ./uploads:/app/uploads \
+  -v ./logs:/app/logs \
+  registry.librechat.ai/danny-avila/librechat-dev:latest
+```
+
+## Health Checks
+
+LibreChat provides a health check endpoint at `/health` (port 3080). You can configure Docker health checks:
+
+```bash
+docker run -d \
+  --name librechat \
+  --health-cmd="curl -f http://localhost:3080/health || exit 1" \
+  --health-interval=30s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  -p 3080:3080 \
+  librechat
+```
+
+## Memory Optimization
+
+LibreChat uses **jemalloc** for improved memory management. The Dockerfile includes:
+
+```dockerfile
+# Install jemalloc
+RUN apk add --no-cache jemalloc
+
+# Set environment variable to use jemalloc
+ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
+```
+
+<Info>
+jemalloc reduces memory fragmentation and improves performance under high load. This is automatically configured in the Docker image.
+</Info>
+
+## MCP Support
+
+The Docker image includes **uv** for Model Context Protocol (MCP) support:
+
+```dockerfile
+COPY --from=ghcr.io/astral-sh/uv:0.9.5-python3.12-alpine /usr/local/bin/uv /usr/local/bin/uvx /bin/
+RUN uv --version
+```
+
+This enables LibreChat to work with MCP servers and tools.
+
+## Troubleshooting
+
+### Container Won't Start
+
+1. Check logs:
+   ```bash
+   docker logs librechat
+   ```
+
+2. Verify environment variables:
+   ```bash
+   docker exec librechat env
+   ```
+
+### Out of Memory Errors
+
+Increase Node.js memory allocation:
+
+```bash
+docker run -d \
+  --name librechat \
+  -e NODE_OPTIONS="--max-old-space-size=8192" \
+  -p 3080:3080 \
+  librechat
+```
+
+### Permission Issues
+
+Ensure mounted volumes have correct permissions:
+
+```bash
+sudo chown -R 1000:1000 ./images ./uploads ./logs
+```
+
+## Next Steps
+
+- For multi-container setup with dependencies, see [Docker Compose](/deployment/docker-compose)
+- For production deployment, see [Production Deployment](/deployment/cloud-platforms)
+- For Kubernetes deployment, see [Kubernetes](/deployment/kubernetes)

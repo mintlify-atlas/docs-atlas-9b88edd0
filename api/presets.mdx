@@ -1,0 +1,336 @@
+---
+title: Presets API
+description: API endpoints for managing conversation presets and templates
+---
+
+The Presets API allows you to create, retrieve, and delete conversation presets, which are saved configurations for model settings, parameters, and templates that can be reused across conversations.
+
+## Authentication
+
+All endpoints require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## List Presets
+
+<CodeGroup>
+```bash GET /api/presets
+curl -X GET "https://your-domain.com/api/presets" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve all presets for the authenticated user.
+
+### Response
+
+Returns an array of preset objects.
+
+<ResponseField name="presets" type="array">
+  <Expandable title="Preset object">
+    <ResponseField name="presetId" type="string">
+      Unique preset identifier (UUID)
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Preset name/title
+    </ResponseField>
+    <ResponseField name="endpoint" type="string">
+      Model endpoint (e.g., "openAI", "anthropic", "agents")
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Model identifier
+    </ResponseField>
+    <ResponseField name="temperature" type="number">
+      Temperature parameter (0-2)
+    </ResponseField>
+    <ResponseField name="top_p" type="number">
+      Top-p sampling parameter
+    </ResponseField>
+    <ResponseField name="topK" type="number">
+      Top-k sampling parameter (provider-specific)
+    </ResponseField>
+    <ResponseField name="frequency_penalty" type="number">
+      Frequency penalty parameter
+    </ResponseField>
+    <ResponseField name="presence_penalty" type="number">
+      Presence penalty parameter
+    </ResponseField>
+    <ResponseField name="max_tokens" type="integer">
+      Maximum tokens to generate
+    </ResponseField>
+    <ResponseField name="promptPrefix" type="string">
+      System message or prompt prefix
+    </ResponseField>
+    <ResponseField name="tools" type="array">
+      Enabled tools for this preset
+    </ResponseField>
+    <ResponseField name="iconURL" type="string">
+      Custom icon URL
+    </ResponseField>
+    <ResponseField name="greeting" type="string">
+      Initial greeting message
+    </ResponseField>
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Create or Update Preset
+
+<CodeGroup>
+```bash POST /api/presets
+curl -X POST "https://your-domain.com/api/presets" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "GPT-4 Creative Writer",
+    "endpoint": "openAI",
+    "model": "gpt-4",
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "max_tokens": 2000,
+    "promptPrefix": "You are a creative writing assistant."
+  }'
+```
+</CodeGroup>
+
+Create a new preset or update an existing one. If `presetId` is provided and exists, the preset will be updated; otherwise, a new preset is created.
+
+### Request Body
+
+<ParamField body="presetId" type="string">
+  Preset ID (UUID). If omitted, a new UUID will be generated
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Preset name/title
+</ParamField>
+
+<ParamField body="endpoint" type="string" required>
+  Model endpoint identifier
+</ParamField>
+
+<ParamField body="model" type="string" required>
+  Model identifier
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Temperature (0-2, default varies by model)
+</ParamField>
+
+<ParamField body="top_p" type="number">
+  Top-p sampling (0-1)
+</ParamField>
+
+<ParamField body="topK" type="number">
+  Top-k sampling (provider-specific)
+</ParamField>
+
+<ParamField body="frequency_penalty" type="number">
+  Frequency penalty (0-2)
+</ParamField>
+
+<ParamField body="presence_penalty" type="number">
+  Presence penalty (0-2)
+</ParamField>
+
+<ParamField body="max_tokens" type="integer">
+  Maximum tokens to generate
+</ParamField>
+
+<ParamField body="maxContextTokens" type="integer">
+  Maximum context window size
+</ParamField>
+
+<ParamField body="promptPrefix" type="string">
+  System message or prompt prefix
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  Agent/assistant instructions
+</ParamField>
+
+<ParamField body="tools" type="array">
+  Array of enabled tool identifiers
+</ParamField>
+
+<ParamField body="stop" type="array">
+  Array of stop sequences
+</ParamField>
+
+<ParamField body="iconURL" type="string">
+  Custom icon URL
+</ParamField>
+
+<ParamField body="greeting" type="string">
+  Initial greeting message
+</ParamField>
+
+<ParamField body="modelLabel" type="string">
+  Custom model display label
+</ParamField>
+
+<ParamField body="chatGptLabel" type="string">
+  Custom chat label
+</ParamField>
+
+<ParamField body="resendFiles" type="boolean">
+  Whether to resend files in context
+</ParamField>
+
+<ParamField body="imageDetail" type="string">
+  Image detail level: "auto", "low", or "high"
+</ParamField>
+
+<ParamField body="artifacts" type="boolean">
+  Enable artifacts (code blocks, formatted content)
+</ParamField>
+
+### Response
+
+Returns the created or updated preset object with status **201 Created**.
+
+### Error Responses
+
+- **500 Internal Server Error**: Failed to save preset
+
+---
+
+## Delete Preset
+
+<CodeGroup>
+```bash POST /api/presets/delete
+curl -X POST "https://your-domain.com/api/presets/delete" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "presetId": "<preset_id>"
+  }'
+```
+</CodeGroup>
+
+Delete a specific preset or all presets if no `presetId` is provided.
+
+### Request Body
+
+<ParamField body="presetId" type="string">
+  The preset ID to delete. If omitted, all user presets will be deleted.
+</ParamField>
+
+### Response
+
+Returns the number of deleted presets.
+
+<ResponseField name="deletedCount" type="integer">
+  Number of presets deleted
+</ResponseField>
+
+### Error Responses
+
+- **500 Internal Server Error**: Deletion failed
+
+---
+
+## Preset Structure Details
+
+### Endpoint-Specific Parameters
+
+Different endpoints support different parameters:
+
+#### OpenAI / Azure OpenAI
+- `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`
+- `max_tokens`, `stop`
+- `response_format` (for JSON mode)
+
+#### Anthropic
+- `temperature`, `top_p`, `top_k`
+- `max_tokens`, `stop_sequences`
+- `thinking` (extended thinking mode)
+
+#### Google
+- `temperature`, `topP`, `topK`
+- `maxOutputTokens`
+- `safetySettings`
+
+#### Agents
+- `temperature`, `top_p`
+- `max_tokens`
+- `tools` (array of tool identifiers)
+- `instructions` (system prompt)
+- `provider` (underlying model provider)
+
+### Common Use Cases
+
+1. **Creative Writing**: High temperature (0.8-1.0), high top_p
+2. **Code Generation**: Lower temperature (0.2-0.4), focused sampling
+3. **Factual Q&A**: Low temperature (0.1-0.3), deterministic output
+4. **Customer Support**: Medium temperature (0.5-0.7), balanced creativity
+
+---
+
+## Example Presets
+
+### GPT-4 Code Assistant
+
+```json
+{
+  "title": "GPT-4 Code Assistant",
+  "endpoint": "openAI",
+  "model": "gpt-4",
+  "temperature": 0.3,
+  "top_p": 0.95,
+  "max_tokens": 4000,
+  "promptPrefix": "You are an expert programmer. Provide clear, well-commented code.",
+  "tools": ["code_interpreter"]
+}
+```
+
+### Claude Creative Writer
+
+```json
+{
+  "title": "Claude Creative Writer",
+  "endpoint": "anthropic",
+  "model": "claude-3-opus-20240229",
+  "temperature": 0.9,
+  "top_p": 0.95,
+  "top_k": 40,
+  "max_tokens": 4096,
+  "promptPrefix": "You are a creative writing assistant with a focus on vivid storytelling."
+}
+```
+
+### Research Agent
+
+```json
+{
+  "title": "Research Agent",
+  "endpoint": "agents",
+  "model": "gpt-4",
+  "provider": "openAI",
+  "temperature": 0.5,
+  "max_tokens": 8000,
+  "instructions": "You are a research assistant. Gather information from multiple sources and synthesize findings.",
+  "tools": ["web_search", "file_search"]
+}
+```
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or malformed request |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 500 | Internal Server Error - Failed to save or delete preset |

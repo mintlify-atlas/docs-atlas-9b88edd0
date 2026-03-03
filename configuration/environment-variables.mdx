@@ -1,0 +1,400 @@
+---
+title: Environment Variables
+description: Complete reference for all environment variables in LibreChat
+---
+
+LibreChat uses environment variables for configuration. Copy `.env.example` to `.env` and configure the variables below.
+
+## Server Configuration
+
+<ParamField path="HOST" type="string" default="localhost">
+  Server hostname
+</ParamField>
+
+<ParamField path="PORT" type="number" default="3080">
+  Server port number
+</ParamField>
+
+<ParamField path="MONGO_URI" type="string" required>
+  MongoDB connection string
+  
+  ```bash
+  MONGO_URI=mongodb://127.0.0.1:27017/LibreChat
+  ```
+</ParamField>
+
+<ParamField path="DOMAIN_CLIENT" type="string" default="http://localhost:3080">
+  Client-facing domain URL
+</ParamField>
+
+<ParamField path="DOMAIN_SERVER" type="string" default="http://localhost:3080">
+  Server-facing domain URL
+</ParamField>
+
+### MongoDB Connection Pool
+
+<ParamField path="MONGO_MAX_POOL_SIZE" type="number">
+  Maximum number of connections in the connection pool
+</ParamField>
+
+<ParamField path="MONGO_MIN_POOL_SIZE" type="number">
+  Minimum number of connections in the connection pool
+</ParamField>
+
+<ParamField path="MONGO_MAX_CONNECTING" type="number">
+  Maximum connections being established concurrently
+</ParamField>
+
+<ParamField path="MONGO_MAX_IDLE_TIME_MS" type="number">
+  Maximum time a connection can remain idle before being closed (milliseconds)
+</ParamField>
+
+<ParamField path="MONGO_AUTO_INDEX" type="boolean">
+  Enable automatic index creation for all models. Set to false to disable
+</ParamField>
+
+## Security & Authentication
+
+<ParamField path="JWT_SECRET" type="string" required>
+  Secret key for JWT token generation
+  
+  <Warning>Generate a secure random string for production</Warning>
+  
+  ```bash
+  JWT_SECRET=16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef
+  ```
+</ParamField>
+
+<ParamField path="JWT_REFRESH_SECRET" type="string" required>
+  Secret key for JWT refresh tokens
+</ParamField>
+
+<ParamField path="CREDS_KEY" type="string" required>
+  Encryption key for credential storage
+</ParamField>
+
+<ParamField path="CREDS_IV" type="string" required>
+  Initialization vector for credential encryption
+</ParamField>
+
+<ParamField path="SESSION_EXPIRY" type="number" default="900000">
+  Session expiration time in milliseconds (default: 15 minutes)
+  
+  ```bash
+  SESSION_EXPIRY=1000 * 60 * 15
+  ```
+</ParamField>
+
+<ParamField path="REFRESH_TOKEN_EXPIRY" type="number" default="604800000">
+  Refresh token expiration time in milliseconds (default: 7 days)
+  
+  ```bash
+  REFRESH_TOKEN_EXPIRY=(1000 * 60 * 60 * 24) * 7
+  ```
+</ParamField>
+
+<ParamField path="MIN_PASSWORD_LENGTH" type="number" default="8">
+  Minimum password length for user authentication
+  
+  <Note>Set to 1 when using LDAP to bypass local password validation</Note>
+</ParamField>
+
+## Logging & Debugging
+
+<ParamField path="DEBUG_LOGGING" type="boolean" default="true">
+  Enable debug-level logging
+</ParamField>
+
+<ParamField path="DEBUG_CONSOLE" type="boolean" default="false">
+  Enable console debug output
+</ParamField>
+
+<ParamField path="CONSOLE_JSON" type="boolean" default="false">
+  Use JSON format for console logs (recommended for cloud deployments like GCP/AWS)
+</ParamField>
+
+<ParamField path="MEM_DIAG" type="boolean">
+  Enable memory diagnostics (logs heap/RSS snapshots every 60s, auto-enabled with --inspect)
+</ParamField>
+
+## Node.js Configuration
+
+<ParamField path="NODE_OPTIONS" type="string">
+  Node.js command-line options
+  
+  ```bash
+  NODE_OPTIONS="--max-old-space-size=6144"
+  ```
+</ParamField>
+
+<ParamField path="NODE_MAX_OLD_SPACE_SIZE" type="number" default="6144">
+  Node.js heap size in MB (used as Docker build argument, not recognized by Node.js directly)
+  
+  <Note>To configure Node.js memory, use NODE_OPTIONS instead</Note>
+</ParamField>
+
+## Configuration File
+
+<ParamField path="CONFIG_PATH" type="string">
+  Path to librechat.yaml configuration file (absolute, relative, or URL)
+  
+  ```bash
+  CONFIG_PATH="/alternative/path/to/librechat.yaml"
+  ```
+</ParamField>
+
+## Search Configuration
+
+<ParamField path="SEARCH" type="boolean" default="true">
+  Enable MeiliSearch integration
+</ParamField>
+
+<ParamField path="MEILI_HOST" type="string" default="http://0.0.0.0:7700">
+  MeiliSearch server host
+</ParamField>
+
+<ParamField path="MEILI_MASTER_KEY" type="string" required>
+  MeiliSearch master key
+</ParamField>
+
+<ParamField path="MEILI_NO_ANALYTICS" type="boolean" default="true">
+  Disable MeiliSearch analytics
+</ParamField>
+
+<ParamField path="MEILI_NO_SYNC" type="boolean">
+  Disable indexing (useful in multi-node setup where only one instance performs index sync)
+</ParamField>
+
+## User Registration & Login
+
+<ParamField path="ALLOW_EMAIL_LOGIN" type="boolean" default="true">
+  Enable email/password login
+</ParamField>
+
+<ParamField path="ALLOW_REGISTRATION" type="boolean" default="true">
+  Enable user registration
+</ParamField>
+
+<ParamField path="ALLOW_SOCIAL_LOGIN" type="boolean" default="false">
+  Enable social login (OAuth)
+</ParamField>
+
+<ParamField path="ALLOW_SOCIAL_REGISTRATION" type="boolean" default="false">
+  Enable registration via social providers
+</ParamField>
+
+<ParamField path="ALLOW_PASSWORD_RESET" type="boolean" default="false">
+  Enable password reset functionality
+</ParamField>
+
+<ParamField path="ALLOW_UNVERIFIED_EMAIL_LOGIN" type="boolean" default="true">
+  Allow login with unverified email addresses
+</ParamField>
+
+<ParamField path="ALLOW_ACCOUNT_DELETION" type="boolean" default="true">
+  Allow users to delete their accounts
+</ParamField>
+
+## Rate Limiting & Moderation
+
+<ParamField path="BAN_VIOLATIONS" type="boolean" default="true">
+  Enable automatic banning based on violation scores
+</ParamField>
+
+<ParamField path="BAN_DURATION" type="number" default="7200000">
+  Ban duration in milliseconds (default: 2 hours)
+  
+  ```bash
+  BAN_DURATION=1000 * 60 * 60 * 2
+  ```
+</ParamField>
+
+<ParamField path="BAN_INTERVAL" type="number" default="20">
+  Number of violations before ban
+</ParamField>
+
+### Violation Scores
+
+<ParamField path="LOGIN_VIOLATION_SCORE" type="number" default="1">
+  Violation score for failed login attempts
+</ParamField>
+
+<ParamField path="REGISTRATION_VIOLATION_SCORE" type="number" default="1">
+  Violation score for registration attempts
+</ParamField>
+
+<ParamField path="MESSAGE_VIOLATION_SCORE" type="number" default="1">
+  Violation score for message rate limit violations
+</ParamField>
+
+<ParamField path="NON_BROWSER_VIOLATION_SCORE" type="number" default="20">
+  Violation score for non-browser requests
+</ParamField>
+
+### Rate Limits
+
+<ParamField path="LOGIN_MAX" type="number" default="7">
+  Maximum login attempts per window
+</ParamField>
+
+<ParamField path="LOGIN_WINDOW" type="number" default="5">
+  Login rate limit window in minutes
+</ParamField>
+
+<ParamField path="REGISTER_MAX" type="number" default="5">
+  Maximum registration attempts per window
+</ParamField>
+
+<ParamField path="REGISTER_WINDOW" type="number" default="60">
+  Registration rate limit window in minutes
+</ParamField>
+
+<ParamField path="LIMIT_CONCURRENT_MESSAGES" type="boolean" default="true">
+  Enable concurrent message limiting
+</ParamField>
+
+<ParamField path="CONCURRENT_MESSAGE_MAX" type="number" default="2">
+  Maximum concurrent messages per user
+</ParamField>
+
+<ParamField path="MESSAGE_IP_MAX" type="number" default="40">
+  Maximum messages per IP per window
+</ParamField>
+
+<ParamField path="MESSAGE_IP_WINDOW" type="number" default="1">
+  Message IP rate limit window in minutes
+</ParamField>
+
+## OpenAI Moderation
+
+<ParamField path="OPENAI_MODERATION" type="boolean" default="false">
+  Enable OpenAI content moderation
+</ParamField>
+
+<ParamField path="OPENAI_MODERATION_API_KEY" type="string">
+  OpenAI API key for moderation endpoint
+</ParamField>
+
+<ParamField path="OPENAI_MODERATION_REVERSE_PROXY" type="string">
+  Custom reverse proxy for OpenAI moderation API
+</ParamField>
+
+## Redis Configuration
+
+<ParamField path="USE_REDIS" type="boolean">
+  Enable Redis for caching and session storage
+</ParamField>
+
+<ParamField path="USE_REDIS_STREAMS" type="boolean">
+  Enable Redis for resumable LLM streams (defaults to USE_REDIS value)
+  
+  <Note>Set to false to use in-memory storage for streams while keeping Redis for other caches</Note>
+</ParamField>
+
+<ParamField path="REDIS_URI" type="string">
+  Redis connection URI
+  
+  <CodeGroup>
+  ```bash Single Instance
+  REDIS_URI=redis://127.0.0.1:6379
+  ```
+  
+  ```bash Cluster
+  REDIS_URI=redis://127.0.0.1:7001,redis://127.0.0.1:7002,redis://127.0.0.1:7003
+  ```
+  
+  ```bash TLS/SSL
+  REDIS_URI=rediss://127.0.0.1:6380
+  REDIS_CA=/path/to/ca-cert.pem
+  ```
+  </CodeGroup>
+</ParamField>
+
+<ParamField path="REDIS_USERNAME" type="string">
+  Redis authentication username
+</ParamField>
+
+<ParamField path="REDIS_PASSWORD" type="string">
+  Redis authentication password
+</ParamField>
+
+<ParamField path="REDIS_KEY_PREFIX" type="string">
+  Static prefix for Redis keys
+</ParamField>
+
+<ParamField path="REDIS_KEY_PREFIX_VAR" type="string">
+  Environment variable name for dynamic Redis key prefix (recommended for cloud deployments)
+  
+  ```bash
+  REDIS_KEY_PREFIX_VAR=K_REVISION
+  ```
+</ParamField>
+
+<ParamField path="REDIS_PING_INTERVAL" type="number" default="0">
+  Redis ping interval in seconds (0 = disabled)
+  
+  <Note>When set to a positive integer, Redis clients ping the server to keep connections alive</Note>
+</ParamField>
+
+## UI Configuration
+
+<ParamField path="APP_TITLE" type="string" default="LibreChat">
+  Application title displayed in browser
+</ParamField>
+
+<ParamField path="CUSTOM_FOOTER" type="string">
+  Custom footer text
+  
+  ```bash
+  CUSTOM_FOOTER="My custom footer"
+  ```
+</ParamField>
+
+<ParamField path="HELP_AND_FAQ_URL" type="string" default="https://librechat.ai">
+  URL for help and FAQ link
+</ParamField>
+
+<ParamField path="ANALYTICS_GTM_ID" type="string">
+  Google Tag Manager ID for analytics
+</ParamField>
+
+## Proxy & Network
+
+<ParamField path="PROXY" type="string">
+  HTTP proxy for API requests
+</ParamField>
+
+<ParamField path="TRUST_PROXY" type="number" default="1">
+  Number of hops from Express application to trust for client IP
+  
+  <Note>
+  - 0 = req.socket.remoteAddress (no reverse proxy)
+  - 1 = first hop in X-Forwarded-For header
+  </Note>
+</ParamField>
+
+<ParamField path="NO_INDEX" type="boolean" default="true">
+  Add noindex meta tag to prevent search engine indexing
+</ParamField>
+
+## Langfuse Tracing
+
+<ParamField path="LANGFUSE_PUBLIC_KEY" type="string">
+  Langfuse public API key for tracing
+</ParamField>
+
+<ParamField path="LANGFUSE_SECRET_KEY" type="string">
+  Langfuse secret API key
+</ParamField>
+
+<ParamField path="LANGFUSE_BASE_URL" type="string">
+  Langfuse API base URL
+</ParamField>
+
+## Error Handling
+
+<ParamField path="CONTINUE_ON_UNCAUGHT_EXCEPTION" type="boolean" default="false">
+  Continue running after uncaught exceptions
+  
+  <Warning>Not recommended for production unless necessary</Warning>
+</ParamField>

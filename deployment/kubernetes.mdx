@@ -1,0 +1,661 @@
+---
+title: Kubernetes Deployment
+description: Deploy LibreChat on Kubernetes using Helm charts with production-ready configuration
+---
+
+Deploy LibreChat on Kubernetes using the official Helm chart. This provides a production-ready setup with automatic scaling, health checks, and persistent storage.
+
+## Prerequisites
+
+Before deploying to Kubernetes, ensure you have:
+
+- Kubernetes cluster (v1.19+)
+- Helm 3.x installed
+- kubectl configured to access your cluster
+- At least 4GB RAM available per pod
+- StorageClass configured for persistent volumes
+
+## Helm Chart Overview
+
+The LibreChat Helm chart includes:
+
+- **LibreChat Application**: Main application deployment
+- **MongoDB**: Database (optional, can use external)
+- **Meilisearch**: Search engine
+- **Redis**: Caching layer (optional)
+- **RAG API**: Retrieval-Augmented Generation service (optional)
+
+### Chart Information
+
+- **Chart Version**: 1.9.8
+- **App Version**: v0.8.3-rc1
+- **Repository**: Official LibreChat Helm charts
+
+## Quick Start
+
+<Steps>
+
+<Step title="Add Helm Repository">
+
+Add the LibreChat Helm repository:
+
+```bash
+helm repo add librechat https://charts.librechat.ai
+helm repo update
+```
+
+</Step>
+
+<Step title="Create Namespace">
+
+Create a dedicated namespace:
+
+```bash
+kubectl create namespace librechat
+```
+
+</Step>
+
+<Step title="Create Secrets">
+
+Create a Kubernetes secret for sensitive credentials:
+
+```bash
+kubectl create secret generic librechat-credentials-env \
+  --from-literal=JWT_SECRET=$(openssl rand -hex 32) \
+  --from-literal=JWT_REFRESH_SECRET=$(openssl rand -hex 32) \
+  --from-literal=CREDS_KEY=$(openssl rand -hex 32) \
+  --from-literal=CREDS_IV=$(openssl rand -hex 16) \
+  --from-literal=MEILI_MASTER_KEY=$(openssl rand -hex 32) \
+  --from-literal=OPENAI_API_KEY=your-openai-key \
+  -n librechat
+```
+
+</Step>
+
+<Step title="Install Chart">
+
+Install LibreChat with default values:
+
+```bash
+helm install librechat librechat/librechat \
+  --namespace librechat \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=chat.example.com \
+  --set ingress.hosts[0].paths[0].path=/ \
+  --set ingress.hosts[0].paths[0].pathType=ImplementationSpecific
+```
+
+</Step>
+
+<Step title="Verify Deployment">
+
+Check deployment status:
+
+```bash
+kubectl get pods -n librechat
+kubectl get svc -n librechat
+kubectl get ingress -n librechat
+```
+
+</Step>
+
+</Steps>
+
+## Configuration with values.yaml
+
+Create a `values.yaml` file for custom configuration:
+
+<CodeGroup>
+```yaml values.yaml
+# Replica count
+replicaCount: 2
+
+# Image configuration
+image:
+  repository: danny-avila/librechat
+  registry: registry.librechat.ai
+  pullPolicy: IfNotPresent
+  tag: "v0.8.3-rc1"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3080
+  targetPort: 3080
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  hosts:
+    - host: chat.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: librechat-tls
+      hosts:
+        - chat.example.com
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Environment configuration
+librechat:
+  configEnv:
+    CREDS_KEY: "your-creds-key-from-secret"
+    CREDS_IV: "your-creds-iv-from-secret"
+    JWT_SECRET: "your-jwt-secret-from-secret"
+    JWT_REFRESH_SECRET: "your-jwt-refresh-from-secret"
+  
+  # Reference existing secret
+  existingSecretName: "librechat-credentials-env"
+  
+  # Image volume
+  imageVolume:
+    enabled: true
+    size: 10Gi
+    accessModes: ReadWriteOnce
+    storageClassName: standard
+
+# MongoDB configuration
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: "your-mongo-root-password"
+  databases:
+    - LibreChat
+  persistence:
+    size: 20Gi
+    storageClass: standard
+
+# Meilisearch configuration
+meilisearch:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard
+  auth:
+    existingMasterKeySecret: "librechat-credentials-env"
+
+# Redis configuration (optional)
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 2Gi
+
+# RAG API (optional)
+librechat-rag-api:
+  enabled: true
+  embeddingsProvider: openai
+```
+</CodeGroup>
+
+Install with custom values:
+
+```bash
+helm install librechat librechat/librechat \
+  --namespace librechat \
+  --values values.yaml
+```
+
+## Production Configuration
+
+For production deployments, configure these critical settings:
+
+### 1. Resource Limits
+
+```yaml
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+```
+
+### 2. Persistent Storage
+
+```yaml
+librechat:
+  imageVolume:
+    enabled: true
+    size: 50Gi
+    accessModes: ReadWriteOnce
+    storageClassName: fast-ssd
+
+mongodb:
+  persistence:
+    size: 100Gi
+    storageClass: fast-ssd
+```
+
+### 3. High Availability
+
+```yaml
+replicaCount: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - librechat
+          topologyKey: kubernetes.io/hostname
+```
+
+### 4. Ingress with TLS
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  hosts:
+    - host: chat.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: librechat-tls
+      hosts:
+        - chat.example.com
+```
+
+### 5. Health Checks
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3080
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+```
+
+## Security Configuration
+
+### Pod Security Context
+
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+```
+
+### Network Policies
+
+Create a network policy:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: librechat-network-policy
+  namespace: librechat
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: librechat
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - to:
+        - podSelector:
+            matchLabels:
+              app: meilisearch
+      ports:
+        - protocol: TCP
+          port: 7700
+```
+
+## Database Options
+
+### Using Internal MongoDB
+
+```yaml
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: "secure-password"
+    username: librechat
+    password: "db-password"
+    database: LibreChat
+  persistence:
+    size: 50Gi
+```
+
+### Using External MongoDB
+
+```yaml
+mongodb:
+  enabled: false
+
+librechat:
+  configEnv:
+    MONGO_URI: "mongodb://username:password@external-mongo:27017/LibreChat"
+```
+
+## Custom Configuration File
+
+Mount a custom `librechat.yaml`:
+
+```yaml
+librechat:
+  configYamlContent: |
+    version: 1.0.8
+    cache: true
+    
+    interface:
+      privacyPolicy:
+        externalUrl: 'https://example.com/privacy'
+        openNewTab: true
+      termsOfService:
+        externalUrl: 'https://example.com/tos'
+        openNewTab: true
+    
+    registration:
+      socialLogins: ["google", "github"]
+    
+    endpoints:
+      azureOpenAI:
+        titleModel: "gpt-4o"
+        plugins: true
+        groups:
+          - group: "production"
+            apiKey: "${AZURE_API_KEY}"
+            instanceName: "my-instance"
+            deploymentName: gpt-4o
+            version: "2024-05-01-preview"
+```
+
+## Monitoring and Observability
+
+### Prometheus Metrics
+
+Add annotations for Prometheus scraping:
+
+```yaml
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3080"
+  prometheus.io/path: "/metrics"
+```
+
+### Logging
+
+Configure logging sidecar:
+
+```yaml
+volumes:
+  - name: logs
+    emptyDir: {}
+
+volumeMounts:
+  - name: logs
+    mountPath: /app/logs
+
+# Add log collection sidecar
+initContainers:
+  log-collector:
+    image: fluent/fluent-bit:latest
+    volumeMounts:
+      - name: logs
+        mountPath: /app/logs
+```
+
+## Backup and Restore
+
+### MongoDB Backup
+
+Create a CronJob for backups:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: librechat
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: mongo:8.0.17
+            command:
+              - /bin/sh
+              - -c
+              - |
+                mongodump --uri="mongodb://mongodb:27017/LibreChat" \
+                  --out=/backup/$(date +%Y%m%d)
+            volumeMounts:
+              - name: backup-storage
+                mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+```
+
+## Common Commands
+
+### Upgrade Release
+
+```bash
+helm upgrade librechat librechat/librechat \
+  --namespace librechat \
+  --values values.yaml
+```
+
+### Rollback Release
+
+```bash
+helm rollback librechat -n librechat
+```
+
+### View Values
+
+```bash
+helm get values librechat -n librechat
+```
+
+### Debug Installation
+
+```bash
+helm install librechat librechat/librechat \
+  --namespace librechat \
+  --values values.yaml \
+  --dry-run --debug
+```
+
+### Uninstall
+
+```bash
+helm uninstall librechat -n librechat
+```
+
+## Troubleshooting
+
+### Pods Not Starting
+
+Check pod events:
+
+```bash
+kubectl describe pod <pod-name> -n librechat
+kubectl logs <pod-name> -n librechat
+```
+
+### Database Connection Issues
+
+Verify MongoDB service:
+
+```bash
+kubectl get svc -n librechat
+kubectl exec -it <pod-name> -n librechat -- env | grep MONGO
+```
+
+### Persistent Volume Issues
+
+Check PVC status:
+
+```bash
+kubectl get pvc -n librechat
+kubectl describe pvc <pvc-name> -n librechat
+```
+
+### Ingress Not Working
+
+Verify ingress configuration:
+
+```bash
+kubectl get ingress -n librechat
+kubectl describe ingress librechat -n librechat
+```
+
+## Scaling
+
+### Manual Scaling
+
+```bash
+kubectl scale deployment librechat --replicas=5 -n librechat
+```
+
+### Horizontal Pod Autoscaler
+
+```bash
+kubectl get hpa -n librechat
+kubectl describe hpa librechat -n librechat
+```
+
+## Advanced Configuration
+
+### Custom DNS Configuration
+
+```yaml
+dnsPolicy: "None"
+dnsConfig:
+  nameservers:
+    - 8.8.8.8
+    - 8.8.4.4
+  searches:
+    - svc.cluster.local
+    - cluster.local
+  options:
+    - name: ndots
+      value: "2"
+```
+
+### Host Aliases
+
+```yaml
+hostAliases:
+  - ip: "10.1.2.3"
+    hostnames:
+      - "bedrock-runtime.eu-central-1.amazonaws.com"
+```
+
+### Init Containers
+
+```yaml
+initContainers:
+  wait-for-db:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        until nc -z mongodb 27017; do
+          echo "Waiting for MongoDB..."
+          sleep 2
+        done
+```
+
+## Next Steps
+
+- Configure [librechat.yaml](/configuration/librechat-yaml) for advanced features
+- Configure [OAuth providers](/configuration/authentication)
+- Configure [environment variables](/configuration/environment-variables) for production

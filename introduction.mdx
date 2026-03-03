@@ -1,0 +1,176 @@
+---
+title: Introduction to LibreChat
+description: A self-hosted AI chat platform that unifies all major AI providers in a single, privacy-focused interface
+---
+
+# Welcome to LibreChat
+
+LibreChat is a self-hosted AI chat platform that unifies all major AI providers in a single, privacy-focused interface. Beyond chat, LibreChat provides AI Agents, Model Context Protocol (MCP) support, Artifacts, Code Interpreter, custom actions, conversation search, and enterprise-ready multi-user authentication.
+
+Open source, actively developed, and built for anyone who values control over their AI infrastructure.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get LibreChat running in minutes with Docker
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation options including Docker, npm, and cloud deployments
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration/environment-variables">
+    Configure AI endpoints, authentication, and custom settings
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the LibreChat API and integration options
+  </Card>
+</CardGroup>
+
+## What is LibreChat?
+
+LibreChat (v0.8.3) is an all-in-one AI conversation platform that brings together the most powerful AI models in a unified interface. Whether you're running it locally or deploying to the cloud, LibreChat gives you complete control over your AI interactions.
+
+### Key Capabilities
+
+<CardGroup cols={2}>
+  <Card title="Multi-Provider Support" icon="layer-group">
+    Connect to OpenAI, Anthropic, Google, Azure, AWS Bedrock, and more
+  </Card>
+  <Card title="AI Agents" icon="robot">
+    Build no-code custom assistants with tools, file search, and code execution
+  </Card>
+  <Card title="Code Interpreter" icon="terminal">
+    Execute code in Python, Node.js, Go, C/C++, Java, PHP, Rust, and Fortran
+  </Card>
+  <Card title="Web Search" icon="magnifying-glass">
+    Search the internet and enhance AI responses with real-time information
+  </Card>
+  <Card title="Multimodal Chat" icon="image">
+    Upload and analyze images, PDFs, and documents in conversations
+  </Card>
+  <Card title="Self-Hosted" icon="server">
+    Complete data privacy with local or cloud deployment options
+  </Card>
+</CardGroup>
+
+## Why LibreChat?
+
+### Privacy First
+
+Your conversations and data stay under your control. Run LibreChat entirely on your infrastructure—no external services required unless you choose to integrate them.
+
+### Unified Experience
+
+Stop juggling multiple AI platforms. LibreChat provides a consistent, ChatGPT-inspired interface for all your AI providers with seamless switching between models mid-conversation.
+
+### Enterprise Ready
+
+<Info>
+LibreChat includes built-in features for team collaboration:
+- Multi-user authentication (OAuth2, LDAP, Email)
+- Token spend tracking and balance management
+- User moderation and rate limiting
+- Role-based access control
+</Info>
+
+### Extensible Platform
+
+- **Custom Endpoints**: Connect any OpenAI-compatible API
+- **MCP Support**: Integrate Model Context Protocol servers for enhanced tools
+- **Plugin System**: Extend functionality with code interpreter, web search, and custom tools
+- **Agent Marketplace**: Share and discover community-built AI agents
+
+## Core Features
+
+### Conversation Management
+
+- **Presets**: Create and share custom AI configurations
+- **Branching**: Fork conversations and messages for alternate paths
+- **Search**: Full-text search across all conversations and messages
+- **Import/Export**: Move conversations between LibreChat, ChatGPT, and other platforms
+
+### Advanced AI Features
+
+<Steps>
+  <Step title="Code Artifacts">
+    Generate interactive React components, HTML pages, and Mermaid diagrams directly in chat
+  </Step>
+  <Step title="Image Generation">
+    Create and edit images with GPT-Image-1, DALL-E, Stable Diffusion, or Flux
+  </Step>
+  <Step title="Reasoning UI">
+    Visualize chain-of-thought reasoning for models like DeepSeek-R1
+  </Step>
+  <Step title="Resumable Streams">
+    Never lose a response—streams automatically reconnect and sync across devices
+  </Step>
+</Steps>
+
+### Internationalization
+
+LibreChat supports 30+ languages including English, Chinese, Arabic, German, Spanish, French, Italian, Polish, Portuguese, Russian, Japanese, Swedish, Korean, Vietnamese, Turkish, Dutch, Hebrew, and more.
+
+## Architecture
+
+<Note>
+LibreChat is built as a **monorepo** with separate workspaces:
+- `/api` - Express backend server (Node.js)
+- `/client` - React frontend (TypeScript)
+- `/packages/*` - Shared libraries and utilities
+- **Database**: MongoDB for data persistence
+- **Search**: Meilisearch for conversation indexing
+- **Cache**: Optional Redis for multi-instance deployments
+</Note>
+
+### System Requirements
+
+**Minimum:**
+- Node.js v20.19.0+ (or v22.12.0+, or v23.0.0+)
+- MongoDB 8.0+
+- 2GB RAM
+- 10GB disk space
+
+**Recommended for Production:**
+- 4GB+ RAM
+- 20GB+ disk space
+- Redis for caching (multi-instance setups)
+- Reverse proxy (nginx/Caddy)
+
+## Deployment Options
+
+<CardGroup cols={3}>
+  <Card title="Docker" icon="docker">
+    Fastest way to get started—single command deployment
+  </Card>
+  <Card title="npm/Local" icon="npm">
+    Full control with manual installation
+  </Card>
+  <Card title="Cloud Platforms" icon="cloud">
+    One-click deploys to Railway, Zeabur, or Sealos
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="https://docs.librechat.ai">
+    Comprehensive guides and API references
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.librechat.ai">
+    Join 25,000+ users for support and discussion
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/danny-avila/LibreChat/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="YouTube Channel" icon="youtube" href="https://www.youtube.com/@LibreChat">
+    Video tutorials and feature showcases
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Tip>
+Ready to start? Head to the [Quick Start guide](/quickstart) to get LibreChat running in under 5 minutes, or explore the [Installation guide](/installation) for more deployment options.
+</Tip>
+
+---
+
+**LibreChat** is an open-source project actively developed and maintained by the community. Contributions are welcome!

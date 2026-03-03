@@ -1,0 +1,368 @@
+---
+title: Multimodal Chat
+description: Upload and analyze images, documents, and files in conversations with vision-enabled AI models
+---
+
+## Overview
+
+Multimodal chat enables AI models to understand and process multiple types of content beyond text, including images, documents, PDFs, and other files. This allows for visual question answering, document analysis, and rich interactive conversations.
+
+## Supported Content Types
+
+<Tabs>
+  <Tab title="Images">
+    Vision-enabled models can analyze images:
+    
+    - **Formats**: PNG, JPG, JPEG, GIF, WebP
+    - **Use cases**: 
+      - Describe images
+      - Extract text (OCR)
+      - Answer questions about visual content
+      - Analyze charts and diagrams
+      - Compare multiple images
+  </Tab>
+  
+  <Tab title="Documents">
+    Process various document formats:
+    
+    - **Formats**: PDF, TXT, MD, DOCX
+    - **Use cases**:
+      - Summarize documents
+      - Extract key information
+      - Answer questions about content
+      - Translate documents
+  </Tab>
+  
+  <Tab title="Code & Data">
+    Analyze code and structured data:
+    
+    - **Formats**: CSV, JSON, XML, code files
+    - **Use cases**:
+      - Review code
+      - Analyze datasets
+      - Debug errors
+      - Explain code functionality
+  </Tab>
+  
+  <Tab title="Other Files">
+    Model-dependent file support:
+    
+    - Excel spreadsheets (.xlsx)
+    - PowerPoint presentations (.pptx)
+    - Audio files (with supporting models)
+    - And more based on model capabilities
+  </Tab>
+</Tabs>
+
+## Vision-Enabled Models
+
+Not all models support multimodal input. Vision-capable models include:
+
+<Accordion title="OpenAI">
+  - GPT-4o
+  - GPT-4o-mini
+  - GPT-4 Turbo with Vision
+  - GPT-4V
+</Accordion>
+
+<Accordion title="Anthropic">
+  - Claude Sonnet 4
+  - Claude Opus 4
+  - Claude 3.7 Sonnet
+  - Claude 3.5 Sonnet
+  - Claude 3 Opus
+</Accordion>
+
+<Accordion title="Google">
+  - Gemini 3.1 Pro
+  - Gemini 2.5 Pro
+  - Gemini 2.5 Flash
+  - Gemini 2.0 Flash
+  - All Gemini models support vision
+</Accordion>
+
+## Uploading Files
+
+<Steps>
+  <Step title="Click Attachment Button">
+    Look for the paperclip or attachment icon in the message input area.
+  </Step>
+  
+  <Step title="Select Files">
+    Choose one or more files from your device.
+    
+    <Note>
+      Most models support multiple file uploads in a single message.
+    </Note>
+  </Step>
+  
+  <Step title="Wait for Upload">
+    Files are uploaded and processed before sending. You'll see:
+    
+    - Upload progress indicator
+    - Thumbnail previews for images
+    - File name and size for documents
+  </Step>
+  
+  <Step title="Add Context (Optional)">
+    Type a message to provide context or ask specific questions about the uploaded files.
+  </Step>
+  
+  <Step title="Send Message">
+    Click send to submit your message with the attached files.
+  </Step>
+</Steps>
+
+## Example Use Cases
+
+<Tabs>
+  <Tab title="Image Analysis">
+    ```
+    [Upload: screenshot.png]
+    
+    What's wrong with this error message? How can I fix it?
+    ```
+    
+    The AI analyzes the screenshot and provides troubleshooting steps.
+  </Tab>
+  
+  <Tab title="Document Summarization">
+    ```
+    [Upload: research-paper.pdf]
+    
+    Summarize this paper's key findings and methodology.
+    List the main conclusions in bullet points.
+    ```
+  </Tab>
+  
+  <Tab title="Data Analysis">
+    ```
+    [Upload: sales-data.csv]
+    
+    Analyze this sales data and identify:
+    1. Top performing products
+    2. Seasonal trends
+    3. Recommendations for Q4
+    ```
+  </Tab>
+  
+  <Tab title="Code Review">
+    ```
+    [Upload: component.tsx]
+    
+    Review this React component for:
+    - Performance issues
+    - Security vulnerabilities
+    - Best practices
+    ```
+  </Tab>
+  
+  <Tab title="Visual Comparison">
+    ```
+    [Upload: design-v1.png, design-v2.png]
+    
+    Compare these two design mockups.
+    Which one has better visual hierarchy and user experience?
+    ```
+  </Tab>
+</Tabs>
+
+## File Configuration
+
+Configure file upload limits and restrictions:
+
+```yaml
+# librechat.yaml
+fileConfig:
+  # Global server file size limit (MB)
+  serverFileSizeLimit: 100
+  
+  # Endpoint-specific settings
+  endpoints:
+    openAI:
+      fileLimit: 10  # Max number of files
+      fileSizeLimit: 20  # MB per file
+      totalSizeLimit: 100  # Total MB per request
+      supportedMimeTypes:
+        - "image/.*"
+        - "application/pdf"
+    
+    assistants:
+      fileLimit: 5
+      fileSizeLimit: 10
+      totalSizeLimit: 50
+      supportedMimeTypes:
+        - "image/.*"
+        - "application/pdf"
+    
+    # Disable file uploads for specific endpoint
+    anthropic:
+      disabled: false
+    
+    default:
+      totalSizeLimit: 20
+```
+
+## Client-Side Image Resizing
+
+Automatically resize large images before upload:
+
+```yaml
+# librechat.yaml
+fileConfig:
+  clientImageResize:
+    enabled: true
+    maxWidth: 1900   # pixels
+    maxHeight: 1900  # pixels
+    quality: 0.92    # JPEG quality (0.0-1.0)
+```
+
+<Tip>
+  Enable client-side resizing to:
+  - Reduce upload times
+  - Save bandwidth
+  - Prevent upload errors from oversized images
+  - Stay within API size limits
+</Tip>
+
+## Rate Limiting
+
+Control file upload frequency:
+
+```yaml
+# librechat.yaml
+rateLimits:
+  fileUploads:
+    ipMax: 100                # Max uploads per IP
+    ipWindowInMinutes: 60    # Time window for IP limit
+    userMax: 50               # Max uploads per user
+    userWindowInMinutes: 60  # Time window for user limit
+```
+
+## Image Vision in Agents
+
+Enable vision capabilities for agents:
+
+```yaml
+# librechat.yaml
+endpoints:
+  agents:
+    capabilities:
+      - image_vision
+```
+
+In the agent builder, the **Image Vision** toggle allows the agent to process uploaded images.
+
+## File Storage
+
+Configure where uploaded files are stored:
+
+<Tabs>
+  <Tab title="Local Storage">
+    ```yaml
+    # librechat.yaml
+    fileStrategy: "local"  # Default
+    ```
+    
+    Files stored on the server filesystem.
+  </Tab>
+  
+  <Tab title="AWS S3">
+    ```bash
+    # .env
+    AWS_ACCESS_KEY_ID=your-key
+    AWS_SECRET_ACCESS_KEY=your-secret
+    AWS_REGION=us-east-1
+    AWS_BUCKET_NAME=librechat-files
+    ```
+    
+    ```yaml
+    # librechat.yaml
+    fileStrategy: "s3"
+    ```
+  </Tab>
+  
+  <Tab title="Firebase">
+    ```bash
+    # .env
+    FIREBASE_API_KEY=your-key
+    FIREBASE_AUTH_DOMAIN=your-domain
+    FIREBASE_PROJECT_ID=your-project
+    FIREBASE_STORAGE_BUCKET=your-bucket
+    ```
+    
+    ```yaml
+    # librechat.yaml
+    fileStrategy: "firebase"
+    ```
+  </Tab>
+  
+  <Tab title="Granular Strategy">
+    ```yaml
+    # librechat.yaml
+    # Different strategies for different file types
+    fileStrategy:
+      avatar: "s3"       # User/agent avatars
+      image: "firebase"  # Chat images
+      document: "local" # Documents
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<Tip>
+  - **High-quality images**: Better quality input produces better analysis
+  - **Specific questions**: Ask clear questions about visual content
+  - **Multiple perspectives**: Upload multiple images for comparison
+  - **Text extraction**: Works best with clear, well-lit text
+  - **File size**: Optimize large files before upload
+  - **Context**: Provide context about what you want to know
+</Tip>
+
+## Limitations
+
+<Warning>
+  - **Model-dependent**: Not all models support all file types
+  - **Size limits**: Files must be under configured size limits
+  - **Processing time**: Large files take longer to process
+  - **Quality matters**: Low-quality images may produce poor results
+  - **API costs**: Vision requests typically cost more tokens
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Upload fails">
+  - Check file size against limits
+  - Verify file type is supported
+  - Ensure sufficient storage space
+  - Check network connectivity
+</Accordion>
+
+<Accordion title="Model can't see images">
+  - Verify model supports vision (GPT-4o, Claude Sonnet, Gemini)
+  - Check image format is supported
+  - Try re-uploading the image
+  - Ensure image isn't corrupted
+</Accordion>
+
+<Accordion title="Poor image analysis">
+  - Use higher quality images
+  - Ensure images are well-lit and clear
+  - Crop to relevant areas
+  - Try different prompting
+</Accordion>
+
+<Accordion title="File storage errors">
+  - Check storage configuration in `librechat.yaml`
+  - Verify S3/Firebase credentials if using cloud storage
+  - Ensure server has disk space for local storage
+  - Check file permissions
+</Accordion>
+
+## Related Features
+
+- [Agents](/features/agents)
+- [Image Generation](/features/image-generation)
+- [Code Interpreter](/features/code-interpreter)
+- [Artifacts](/features/artifacts)

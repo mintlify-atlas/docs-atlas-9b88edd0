@@ -1,0 +1,547 @@
+---
+title: Permissions
+description: Configure role-based access control, user roles, and permissions for LibreChat features
+---
+
+LibreChat implements a comprehensive permissions system to control access to features, resources, and administrative functions. This guide covers user roles, permission management, and access control configuration.
+
+## Permission System Overview
+
+LibreChat uses a multi-layered permission system:
+
+- **System Roles** - Admin and User roles
+- **ACL (Access Control Lists)** - Fine-grained resource permissions
+- **Feature Flags** - Environment-based feature access
+- **Resource Ownership** - User-level resource control
+
+## System Roles
+
+LibreChat defines two primary system roles in `librechat-data-provider`:
+
+```typescript
+export enum SystemRoles {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+}
+```
+
+### Admin Role
+
+The first registered user automatically receives the `ADMIN` role:
+
+```javascript
+const isFirstRegisteredUser = (await countUsers()) === 0;
+const role = isFirstRegisteredUser ? SystemRoles.ADMIN : SystemRoles.USER;
+```
+
+**Admin Capabilities:**
+- Access to admin dashboard
+- User management operations
+- System configuration changes
+- View all user statistics
+- Manage shared resources
+- Configure global settings
+- Access audit logs
+
+### User Role
+
+Default role for all subsequent registrations.
+
+**User Capabilities:**
+- Create conversations
+- Manage own resources (agents, prompts, presets)
+- Share resources with specific users or groups
+- View own usage statistics
+- Access configured AI endpoints
+
+## Role Assignment
+
+### First User (Admin)
+
+The first user to register is automatically assigned admin privileges:
+
+```bash
+npm run create-user -- admin@example.com "Admin User" admin
+```
+
+<Note>
+  Ensure the first user account is created by a trusted administrator.
+</Note>
+
+### Subsequent Users
+
+All users created after the first are assigned the `USER` role by default.
+
+### LDAP Role Assignment
+
+LDAP authentication handles role assignment during login:
+
+```javascript api/strategies/ldapStrategy.js
+if (!user) {
+  const isFirstRegisteredUser = (await countUsers()) === 0;
+  const role = isFirstRegisteredUser ? SystemRoles.ADMIN : SystemRoles.USER;
+  
+  user = {
+    provider: 'ldap',
+    ldapId,
+    username,
+    email: mail,
+    emailVerified: true,
+    name: fullName,
+    role,
+  };
+}
+```
+
+### OpenID Connect Role Mapping
+
+Map OpenID Connect claims to LibreChat roles:
+
+```bash .env
+# Require specific role for access
+OPENID_REQUIRED_ROLE=librechat-user
+OPENID_REQUIRED_ROLE_TOKEN_KIND=access_token
+OPENID_REQUIRED_ROLE_PARAMETER_PATH=realm_access.roles
+
+# Map admin role from IdP
+OPENID_ADMIN_ROLE=librechat-admin
+OPENID_ADMIN_ROLE_PARAMETER_PATH=realm_access.roles
+OPENID_ADMIN_ROLE_TOKEN_KIND=access_token
+```
+
+### Example: Keycloak Role Mapping
+
+<Steps>
+  <Step title="Create Roles in Keycloak">
+    1. Navigate to your realm in Keycloak
+    2. Go to **Roles** and create:
+       - `librechat-user` (realm role)
+       - `librechat-admin` (realm role)
+  </Step>
+
+  <Step title="Assign Roles to Users">
+    1. Go to **Users** and select a user
+    2. Navigate to **Role Mappings**
+    3. Assign `librechat-user` or `librechat-admin`
+  </Step>
+
+  <Step title="Configure LibreChat">
+    ```bash .env
+    OPENID_ISSUER=https://keycloak.example.com/auth/realms/company
+    OPENID_REQUIRED_ROLE=librechat-user
+    OPENID_ADMIN_ROLE=librechat-admin
+    OPENID_REQUIRED_ROLE_PARAMETER_PATH=realm_access.roles
+    OPENID_ADMIN_ROLE_PARAMETER_PATH=realm_access.roles
+    ```
+  </Step>
+</Steps>
+
+## Access Control Lists (ACL)
+
+ACLs provide fine-grained permissions for shared resources like agents, prompts, and assistants.
+
+### ACL Model
+
+The `AclEntry` model defines resource-level permissions:
+
+```javascript
+const AclEntry = mongoose.model('AclEntry', {
+  principalId: ObjectId,      // User or Group ID
+  resourceId: ObjectId,       // Resource (Agent, Prompt, etc.)
+  resourceType: String,       // 'Agent', 'Prompt', 'Assistant'
+  permissions: [String],      // ['read', 'write', 'delete']
+  inheritPermissions: Boolean,
+  createdAt: Date,
+  updatedAt: Date,
+});
+```
+
+### Permission Types
+
+- **read** - View resource
+- **write** - Modify resource
+- **delete** - Remove resource
+- **share** - Grant access to others
+
+### Resource Sharing
+
+Users can share their resources with specific users or groups:
+
+```javascript
+// Share agent with read permission
+await AclEntry.create({
+  principalId: targetUserId,
+  resourceId: agentId,
+  resourceType: 'Agent',
+  permissions: ['read'],
+});
+```
+
+### Checking Permissions
+
+Before allowing resource access:
+
+```javascript
+const hasAccess = await AclEntry.findOne({
+  principalId: userId,
+  resourceId: agentId,
+  permissions: { $in: ['read', 'write'] },
+});
+
+if (!hasAccess && resource.author !== userId) {
+  throw new Error('Access denied');
+}
+```
+
+## Agent Permissions
+
+Agents support collaborative access through ACLs.
+
+### Migrate Agent Permissions
+
+Migrate existing agent permissions to the ACL system:
+
+```bash
+# Dry run to preview changes
+npm run migrate:agent-permissions:dry-run
+
+# Execute migration
+npm run migrate:agent-permissions
+
+# Process in batches for large datasets
+npm run migrate:agent-permissions:batch
+```
+
+### Agent Permission Migration Script
+
+```json package.json
+"scripts": {
+  "migrate:agent-permissions:dry-run": "node config/migrate-agent-permissions.js --dry-run",
+  "migrate:agent-permissions": "node config/migrate-agent-permissions.js",
+  "migrate:agent-permissions:batch": "node config/migrate-agent-permissions.js --batch-size=50"
+}
+```
+
+The migration script (`config/migrate-agent-permissions.js`) creates ACL entries for existing shared agents.
+
+<Warning>
+  Always run migrations in dry-run mode first to preview changes before committing.
+</Warning>
+
+## Prompt Permissions
+
+Prompts and prompt groups support similar ACL-based permissions.
+
+### Migrate Prompt Permissions
+
+```bash
+# Dry run
+npm run migrate:prompt-permissions:dry-run
+
+# Execute migration
+npm run migrate:prompt-permissions
+
+# Batch processing
+npm run migrate:prompt-permissions:batch
+```
+
+### Prompt Permission Script
+
+```json package.json
+"scripts": {
+  "migrate:prompt-permissions:dry-run": "node config/migrate-prompt-permissions.js --dry-run",
+  "migrate:prompt-permissions": "node config/migrate-prompt-permissions.js",
+  "migrate:prompt-permissions:batch": "node config/migrate-prompt-permissions.js --batch-size=50"
+}
+```
+
+## Group-Based Permissions
+
+Groups enable permission management for teams.
+
+### Group Model
+
+```javascript
+const Group = mongoose.model('Group', {
+  name: String,
+  memberIds: [ObjectId],
+  createdBy: ObjectId,
+  createdAt: Date,
+  updatedAt: Date,
+});
+```
+
+### Sharing with Groups
+
+```javascript
+// Create group
+const group = await Group.create({
+  name: 'Engineering Team',
+  memberIds: [userId1, userId2, userId3],
+  createdBy: adminId,
+});
+
+// Share resource with group
+await AclEntry.create({
+  principalId: group._id,
+  resourceId: promptId,
+  resourceType: 'Prompt',
+  permissions: ['read', 'write'],
+});
+```
+
+### Checking Group Permissions
+
+```javascript
+const userGroups = await Group.find({ memberIds: userId });
+const groupIds = userGroups.map(g => g._id);
+
+const hasAccess = await AclEntry.findOne({
+  principalId: { $in: [userId, ...groupIds] },
+  resourceId: resourceId,
+  permissions: { $in: requiredPermissions },
+});
+```
+
+## Feature Permissions
+
+Control feature access through environment variables and configuration.
+
+### Registration Controls
+
+```bash .env
+# Disable public registration
+ALLOW_SOCIAL_REGISTRATION=false
+
+# Restrict to specific domains
+# See librechat.yaml for domain configuration
+```
+
+```yaml librechat.yaml
+registration:
+  allowedDomains:
+    - company.com
+```
+
+### Account Management
+
+```bash .env
+# Allow users to delete their accounts
+ALLOW_ACCOUNT_DELETION=true
+
+# Enable password reset functionality
+ALLOW_PASSWORD_RESET=true
+```
+
+### Social Login Controls
+
+```bash .env
+# Enable/disable social authentication
+ALLOW_SOCIAL_LOGIN=true
+ALLOW_SOCIAL_REGISTRATION=true
+```
+
+## Endpoint Permissions
+
+Configure which AI endpoints users can access:
+
+```bash .env
+ENDPOINTS=openAI,assistants,anthropic,google
+```
+
+### User-Specific Endpoint Access
+
+Define endpoint access in `librechat.yaml`:
+
+```yaml librechat.yaml
+endpoints:
+  openAI:
+    userAccess:
+      - user1@example.com
+      - user2@example.com
+  assistants:
+    userAccess:
+      - admin@example.com
+```
+
+## API Key Permissions
+
+Control API key usage and access:
+
+### Agent API Keys
+
+```javascript
+const AgentApiKey = mongoose.model('AgentApiKey', {
+  user: ObjectId,
+  agentId: ObjectId,
+  key: String,
+  name: String,
+  permissions: [String],
+  expiresAt: Date,
+});
+```
+
+### Key Permissions
+
+- **execute** - Run the agent
+- **configure** - Modify agent settings
+- **share** - Share with others
+
+## Permission Validation
+
+Middleware validates permissions before allowing operations:
+
+```javascript
+const requireAdmin = (req, res, next) => {
+  if (req.user.role !== SystemRoles.ADMIN) {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};
+
+const checkResourceAccess = async (req, res, next) => {
+  const { resourceId } = req.params;
+  const userId = req.user._id;
+  
+  const resource = await Resource.findById(resourceId);
+  if (!resource) {
+    return res.status(404).json({ message: 'Resource not found' });
+  }
+  
+  // Owner has full access
+  if (resource.author.toString() === userId.toString()) {
+    return next();
+  }
+  
+  // Check ACL
+  const acl = await AclEntry.findOne({
+    principalId: userId,
+    resourceId: resourceId,
+    permissions: { $in: ['read', 'write'] },
+  });
+  
+  if (!acl) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  
+  next();
+};
+```
+
+## Best Practices
+
+<Warning>
+  Follow these security guidelines when configuring permissions:
+</Warning>
+
+- Secure the first user account (admin) immediately after installation
+- Use principle of least privilege - grant minimum necessary permissions
+- Regularly audit admin accounts and permissions
+- Use groups for team-based access control
+- Implement ACL migrations during deployment
+- Test permission changes in development environment
+- Document custom permission requirements
+- Use OpenID Connect role mapping for enterprise SSO
+- Restrict allowed registration domains in production
+- Monitor and log permission changes
+- Regularly review and revoke unnecessary access
+- Use API key expiration for automated systems
+
+## Advanced Scenarios
+
+### Custom Permission Middleware
+
+```javascript
+const checkCustomPermission = (requiredPermissions) => {
+  return async (req, res, next) => {
+    const userId = req.user._id;
+    const resourceId = req.params.id;
+    
+    // Check ownership
+    const resource = await Resource.findById(resourceId);
+    if (resource.author.toString() === userId.toString()) {
+      return next();
+    }
+    
+    // Check ACL with group inheritance
+    const userGroups = await Group.find({ memberIds: userId });
+    const principalIds = [userId, ...userGroups.map(g => g._id)];
+    
+    const acl = await AclEntry.findOne({
+      principalId: { $in: principalIds },
+      resourceId: resourceId,
+      permissions: { $all: requiredPermissions },
+    });
+    
+    if (!acl) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    
+    next();
+  };
+};
+
+// Usage
+router.put('/agents/:id', checkCustomPermission(['write']), updateAgent);
+```
+
+### Hierarchical Permissions
+
+```javascript
+// Inherit permissions from parent resources
+const checkInheritedPermissions = async (userId, resourceId) => {
+  let currentResource = await Resource.findById(resourceId);
+  
+  while (currentResource) {
+    const acl = await AclEntry.findOne({
+      principalId: userId,
+      resourceId: currentResource._id,
+      inheritPermissions: true,
+    });
+    
+    if (acl) {
+      return acl.permissions;
+    }
+    
+    currentResource = currentResource.parent ? 
+      await Resource.findById(currentResource.parent) : null;
+  }
+  
+  return [];
+};
+```
+
+## Troubleshooting
+
+### Access Denied Errors
+
+Check ACL entries:
+
+```bash
+mongosh
+use LibreChat
+db.aclentries.find({ principalId: ObjectId("user-id") })
+```
+
+### Admin Role Not Working
+
+Verify user role:
+
+```bash
+mongosh
+use LibreChat
+db.users.findOne({ email: "admin@example.com" }, { role: 1 })
+```
+
+### Permission Migration Issues
+
+```bash
+# Check migration logs
+npm run migrate:agent-permissions:dry-run 2>&1 | tee migration.log
+```
+
+## Next Steps
+
+- [Authentication Setup](/user-management/authentication-setup) - Configure authentication methods
+- [User Administration](/user-management/user-administration) - Manage user accounts
+- [Token Management](/user-management/token-management) - Configure usage limits and balances

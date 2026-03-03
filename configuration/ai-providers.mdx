@@ -1,0 +1,331 @@
+---
+title: AI Provider Configuration
+description: Configure AI model providers including OpenAI, Anthropic, Google, Azure, and more
+---
+
+LibreChat supports multiple AI providers. Configure them using environment variables and the `librechat.yaml` file.
+
+## OpenAI
+
+<ParamField path="OPENAI_API_KEY" type="string" required>
+  OpenAI API key
+  
+  ```bash
+  OPENAI_API_KEY=user_provided
+  ```
+  
+  <Note>Set to `user_provided` to allow users to provide their own keys</Note>
+</ParamField>
+
+<ParamField path="OPENAI_MODELS" type="string">
+  Comma-separated list of available OpenAI models
+  
+  ```bash
+  OPENAI_MODELS=gpt-5,gpt-5-codex,gpt-5-mini,o3-pro,o3,o4-mini,gpt-4o,gpt-4o-mini
+  ```
+</ParamField>
+
+<ParamField path="OPENAI_REVERSE_PROXY" type="string">
+  Custom reverse proxy URL for OpenAI API
+</ParamField>
+
+<ParamField path="OPENAI_ORGANIZATION" type="string">
+  OpenAI organization ID
+</ParamField>
+
+<ParamField path="DEBUG_OPENAI" type="boolean" default="false">
+  Enable OpenAI debug logging
+</ParamField>
+
+### Conversation Titles
+
+<ParamField path="TITLE_CONVO" type="boolean" default="true">
+  Enable automatic conversation title generation
+</ParamField>
+
+<ParamField path="OPENAI_TITLE_MODEL" type="string" default="gpt-4o-mini">
+  Model used for generating conversation titles
+</ParamField>
+
+### Summarization
+
+<ParamField path="OPENAI_SUMMARIZE" type="boolean">
+  Enable conversation summarization
+</ParamField>
+
+<ParamField path="OPENAI_SUMMARY_MODEL" type="string" default="gpt-4o-mini">
+  Model used for conversation summarization
+</ParamField>
+
+## Anthropic (Claude)
+
+<ParamField path="ANTHROPIC_API_KEY" type="string" required>
+  Anthropic API key
+  
+  ```bash
+  ANTHROPIC_API_KEY=user_provided
+  ```
+</ParamField>
+
+<ParamField path="ANTHROPIC_MODELS" type="string">
+  Comma-separated list of Anthropic models
+  
+  ```bash
+  ANTHROPIC_MODELS=claude-sonnet-4-6,claude-opus-4-6,claude-opus-4-20250514,claude-3-7-sonnet-20250219,claude-3-5-sonnet-20241022,claude-3-5-haiku-20241022
+  ```
+</ParamField>
+
+<ParamField path="ANTHROPIC_REVERSE_PROXY" type="string">
+  Custom reverse proxy for Anthropic API
+</ParamField>
+
+### Anthropic via Google Vertex AI
+
+<ParamField path="ANTHROPIC_USE_VERTEX" type="boolean">
+  Use Anthropic models through Google Vertex AI instead of direct API
+</ParamField>
+
+<ParamField path="ANTHROPIC_VERTEX_REGION" type="string" default="us-east5">
+  Google Vertex AI region for Anthropic models
+</ParamField>
+
+```yaml
+endpoints:
+  anthropic:
+    streamRate: 20
+    titleModel: claude-3.5-haiku
+    vertex:
+      region: "us-east5"
+      serviceKeyFile: "/path/to/service-account.json"
+      models:
+        claude-opus-4.5:
+          deploymentName: claude-opus-4-5@20251101
+        claude-sonnet-4:
+          deploymentName: claude-sonnet-4-20250514
+```
+
+## Google (Gemini)
+
+<ParamField path="GOOGLE_KEY" type="string" required>
+  Google API key (for Gemini API/AI Studio)
+  
+  ```bash
+  GOOGLE_KEY=user_provided
+  ```
+</ParamField>
+
+<ParamField path="GOOGLE_MODELS" type="string">
+  Comma-separated list of Google models
+  
+  <CodeGroup>
+  ```bash Gemini API
+  GOOGLE_MODELS=gemini-3.1-pro-preview,gemini-2.5-pro,gemini-2.5-flash,gemini-2.0-flash
+  ```
+  
+  ```bash Vertex AI
+  GOOGLE_MODELS=gemini-3.1-pro-preview,gemini-2.5-flash-lite,gemini-2.0-flash-001
+  ```
+  </CodeGroup>
+</ParamField>
+
+<ParamField path="GOOGLE_REVERSE_PROXY" type="string">
+  Custom reverse proxy for Google API
+</ParamField>
+
+<ParamField path="GOOGLE_AUTH_HEADER" type="boolean">
+  Pass API key in Authorization header instead of X-goog-api-key
+  
+  <Note>Some reverse proxies don't support the X-goog-api-key header</Note>
+</ParamField>
+
+### Vertex AI Configuration
+
+<ParamField path="GOOGLE_SERVICE_KEY_FILE" type="string">
+  Path to Google Cloud service account JSON file
+  
+  ```bash
+  GOOGLE_SERVICE_KEY_FILE=/path/to/service-account.json
+  ```
+</ParamField>
+
+<ParamField path="GOOGLE_LOC" type="string" default="us-central1">
+  Google Cloud region for Vertex AI
+</ParamField>
+
+<ParamField path="GOOGLE_CLOUD_LOCATION" type="string" default="global">
+  Alternative region for Gemini Image Generation
+</ParamField>
+
+### Safety Settings
+
+<ParamField path="GOOGLE_SAFETY_*" type="string">
+  Google Safety Settings (apply to both Vertex AI and Gemini API)
+  
+  <CodeGroup>
+  ```bash Settings
+  GOOGLE_SAFETY_SEXUALLY_EXPLICIT=BLOCK_ONLY_HIGH
+  GOOGLE_SAFETY_HATE_SPEECH=BLOCK_ONLY_HIGH
+  GOOGLE_SAFETY_HARASSMENT=BLOCK_ONLY_HIGH
+  GOOGLE_SAFETY_DANGEROUS_CONTENT=BLOCK_ONLY_HIGH
+  GOOGLE_SAFETY_CIVIC_INTEGRITY=BLOCK_ONLY_HIGH
+  ```
+  </CodeGroup>
+  
+  Options: `BLOCK_NONE`, `BLOCK_ONLY_HIGH`, `BLOCK_MEDIUM_AND_ABOVE`, `BLOCK_LOW_AND_ABOVE`
+  
+  <Warning>
+  For Vertex AI, `BLOCK_NONE` requires allowlist access or monthly invoiced billing
+  </Warning>
+</ParamField>
+
+## AWS Bedrock
+
+<ParamField path="BEDROCK_AWS_DEFAULT_REGION" type="string" required>
+  AWS region for Bedrock
+  
+  ```bash
+  BEDROCK_AWS_DEFAULT_REGION=us-east-1
+  ```
+</ParamField>
+
+<ParamField path="BEDROCK_AWS_ACCESS_KEY_ID" type="string">
+  AWS access key ID
+</ParamField>
+
+<ParamField path="BEDROCK_AWS_SECRET_ACCESS_KEY" type="string">
+  AWS secret access key
+</ParamField>
+
+<ParamField path="BEDROCK_AWS_SESSION_TOKEN" type="string">
+  AWS session token (for temporary credentials)
+</ParamField>
+
+<ParamField path="BEDROCK_AWS_MODELS" type="string">
+  Comma-separated list of Bedrock model IDs
+  
+  ```bash
+  BEDROCK_AWS_MODELS=anthropic.claude-sonnet-4-6,anthropic.claude-opus-4-6-v1,meta.llama3-1-8b-instruct-v1:0
+  ```
+  
+  <Note>If omitted, all known supported models are included</Note>
+</ParamField>
+
+### Bedrock Configuration (YAML)
+
+```yaml
+endpoints:
+  bedrock:
+    models:
+      - "anthropic.claude-3-7-sonnet-20250219-v1:0"
+      - "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    
+    inferenceProfiles:
+      "us.anthropic.claude-sonnet-4-20250514-v1:0": "${BEDROCK_INFERENCE_PROFILE_CLAUDE_SONNET}"
+      "anthropic.claude-3-7-sonnet-20250219-v1:0": "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
+    
+    guardrailConfig:
+      guardrailIdentifier: "your-guardrail-id"
+      guardrailVersion: "1"
+      trace: "enabled"
+```
+
+## Azure OpenAI
+
+<Warning>
+Azure environment variables are DEPRECATED. Use `librechat.yaml` configuration instead.
+</Warning>
+
+See the [Custom Endpoints](/configuration/custom-endpoints) documentation for Azure OpenAI configuration.
+
+## Assistants API
+
+<ParamField path="ASSISTANTS_API_KEY" type="string" required>
+  API key for OpenAI Assistants
+  
+  ```bash
+  ASSISTANTS_API_KEY=user_provided
+  ```
+</ParamField>
+
+<ParamField path="ASSISTANTS_BASE_URL" type="string">
+  Custom base URL for Assistants API
+</ParamField>
+
+<ParamField path="ASSISTANTS_MODELS" type="string">
+  Comma-separated list of models available for Assistants
+  
+  ```bash
+  ASSISTANTS_MODELS=gpt-4o,gpt-4o-mini,gpt-4-turbo-preview
+  ```
+</ParamField>
+
+### Assistants Configuration (YAML)
+
+```yaml
+endpoints:
+  assistants:
+    disableBuilder: false
+    pollIntervalMs: 3000
+    timeoutMs: 180000
+    supportedIds: ["asst_supportedAssistantId1", "asst_supportedAssistantId2"]
+    retrievalModels: ["gpt-4-turbo-preview"]
+    capabilities: ["code_interpreter", "retrieval", "actions", "tools", "image_vision"]
+```
+
+## Known AI Providers
+
+These providers can be configured via environment variables and used with custom endpoints:
+
+<CodeGroup>
+```bash Provider Keys
+ANYSCALE_API_KEY=
+APIPIE_API_KEY=
+COHERE_API_KEY=
+DEEPSEEK_API_KEY=
+DATABRICKS_API_KEY=
+FIREWORKS_API_KEY=
+GROQ_API_KEY=
+HUGGINGFACE_TOKEN=
+MISTRAL_API_KEY=
+OPENROUTER_KEY=
+PERPLEXITY_API_KEY=
+SHUTTLEAI_API_KEY=
+TOGETHERAI_API_KEY=
+UNIFY_API_KEY=
+XAI_API_KEY=
+```
+</CodeGroup>
+
+See [Custom Endpoints](/configuration/custom-endpoints) for configuration examples.
+
+## Agents Endpoint
+
+```yaml
+endpoints:
+  agents:
+    recursionLimit: 50
+    maxRecursionLimit: 100
+    disableBuilder: false
+    maxCitations: 30
+    maxCitationsPerFile: 7
+    minRelevanceScore: 0.45
+    capabilities: ["deferred_tools", "execute_code", "file_search", "actions", "tools"]
+```
+
+<ParamField path="agents.recursionLimit" type="number" default="25">
+  Default recursion depth for agents
+</ParamField>
+
+<ParamField path="agents.maxRecursionLimit" type="number" default="25">
+  Maximum recursion depth for agents
+</ParamField>
+
+<ParamField path="agents.maxCitations" type="number" default="30">
+  Maximum total citations in agent responses
+</ParamField>
+
+<ParamField path="agents.minRelevanceScore" type="number" default="0.45">
+  Minimum relevance score for sources (0.0-1.0)
+  
+  <Note>Set to 0.0 to show all sources without filtering</Note>
+</ParamField>

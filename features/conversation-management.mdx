@@ -1,0 +1,433 @@
+---
+title: Conversation Management
+description: Organize, search, bookmark, and share your conversations in LibreChat
+---
+
+## Overview
+
+LibreChat provides powerful tools to manage your conversation history, including search, bookmarks, tags, sharing, and organization features. Keep your conversations organized and easily accessible.
+
+## Conversation List
+
+The sidebar displays your conversation history:
+
+- **Recent conversations**: Sorted by last activity
+- **Conversation titles**: Auto-generated or custom
+- **Conversation metadata**: Model, date, message count
+- **Search bar**: Quick filtering by title or content
+
+## Creating Conversations
+
+<Steps>
+  <Step title="Start New Chat">
+    Click **New Chat** in the sidebar or header.
+  </Step>
+  
+  <Step title="Select Configuration">
+    Choose:
+    - Model and endpoint
+    - Preset (optional)
+    - Agent (optional)
+  </Step>
+  
+  <Step title="Begin Conversation">
+    Send your first message. The conversation title is auto-generated based on content.
+  </Step>
+</Steps>
+
+## Conversation Titles
+
+### Auto-Generated Titles
+
+By default, titles are automatically generated from conversation content:
+
+```yaml
+# librechat.yaml
+# TITLE_CONVO=true (default)
+```
+
+<Accordion title="Title Generation Configuration">
+  Control which model generates titles:
+  
+  ```bash
+  # .env
+  OPENAI_TITLE_MODEL=gpt-4o-mini
+  ```
+  
+  Or in `librechat.yaml` per endpoint:
+  
+  ```yaml
+  endpoints:
+    custom:
+      - name: 'Mistral'
+        titleModel: 'mistral-tiny'
+        titleConvo: true
+  ```
+</Accordion>
+
+### Manual Rename
+
+<Steps>
+  <Step title="Hover Over Conversation">
+    In the sidebar, hover over the conversation you want to rename.
+  </Step>
+  
+  <Step title="Click Options">
+    Click the three-dot menu icon.
+  </Step>
+  
+  <Step title="Select Rename">
+    Choose **Rename** and enter a new title.
+  </Step>
+</Steps>
+
+## Searching Conversations
+
+LibreChat includes powerful search capabilities:
+
+<Tabs>
+  <Tab title="Quick Search">
+    Use the search bar in the sidebar:
+    
+    1. Type your search query
+    2. Results filter in real-time
+    3. Search includes titles and content
+  </Tab>
+  
+  <Tab title="MeiliSearch (Advanced)">
+    For large conversation histories, enable MeiliSearch:
+    
+    ```bash
+    # .env
+    SEARCH=true
+    MEILI_HOST=http://0.0.0.0:7700
+    MEILI_MASTER_KEY=your-secure-key
+    MEILI_NO_ANALYTICS=true
+    ```
+    
+    ```yaml
+    # docker-compose.yml
+    meilisearch:
+      image: getmeili/meilisearch:v1.6
+      ports:
+        - "7700:7700"
+      environment:
+        - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      volumes:
+        - meili_data:/meili_data
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  MeiliSearch provides lightning-fast full-text search across all your conversations, even with thousands of messages.
+</Info>
+
+## Bookmarks
+
+Save important conversations for quick access:
+
+<Steps>
+  <Step title="Open Conversation Options">
+    Hover over a conversation and click the three-dot menu.
+  </Step>
+  
+  <Step title="Bookmark">
+    Click **Add to Bookmarks**.
+  </Step>
+  
+  <Step title="Access Bookmarks">
+    View all bookmarks in the dedicated Bookmarks section of the sidebar.
+  </Step>
+</Steps>
+
+### Bookmark Configuration
+
+```yaml
+# librechat.yaml
+interface:
+  bookmarks: true  # Enable bookmarks
+```
+
+### Managing Bookmarks
+
+- **Edit**: Modify bookmark tags or notes
+- **Remove**: Unbookmark a conversation
+- **Search**: Filter bookmarks by tag or title
+
+## Tags
+
+Organize conversations with custom tags:
+
+```typescript
+// Tag examples
+{
+  tags: ['work', 'project-alpha'],
+  conversation_id: 'conv-123'
+}
+```
+
+<Note>
+  Tags are user-specific and help you categorize conversations by project, topic, or priority.
+</Note>
+
+## Sharing Conversations
+
+Share conversations with other users or publicly:
+
+<Steps>
+  <Step title="Enable Sharing">
+    Ensure sharing is enabled:
+    
+    ```yaml
+    # librechat.yaml
+    interface:
+      # Private sharing with specific users
+      peoplePicker:
+        users: true
+        groups: true
+        roles: true
+    ```
+  </Step>
+  
+  <Step title="Share a Conversation">
+    1. Open conversation options menu
+    2. Click **Share**
+    3. Select users, groups, or roles
+    4. Choose permissions (view/edit)
+  </Step>
+  
+  <Step title="Manage Shared Access">
+    View and modify sharing settings from the conversation options.
+  </Step>
+</Steps>
+
+### Shared Links
+
+Create public links to conversations:
+
+```yaml
+# librechat.yaml
+interface:
+  # Enable shared links
+  fileCitations: true
+```
+
+```bash
+# .env
+ALLOW_SHARED_LINKS=true
+ALLOW_SHARED_LINKS_PUBLIC=true
+```
+
+<Warning>
+  Public shared links allow anyone with the URL to view the conversation. Use with caution for sensitive information.
+</Warning>
+
+## Conversation Options
+
+Right-click or click the three-dot menu on any conversation:
+
+<Accordion title="Available Actions">
+  - **Rename**: Change conversation title
+  - **Delete**: Permanently remove conversation
+  - **Archive**: Hide from main list (if enabled)
+  - **Bookmark**: Add to bookmarks
+  - **Share**: Share with users or create public link
+  - **Fork**: Create a branch from a specific message
+  - **Export**: Download conversation data
+</Accordion>
+
+## Deleting Conversations
+
+<Steps>
+  <Step title="Select Conversation">
+    Hover over the conversation you want to delete.
+  </Step>
+  
+  <Step title="Open Options Menu">
+    Click the three-dot icon.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Click **Delete** and confirm the action.
+  </Step>
+</Steps>
+
+<Warning>
+  Deleted conversations cannot be recovered. Export important conversations before deleting.
+</Warning>
+
+## Multi-Conversation Mode
+
+Manage multiple conversations simultaneously:
+
+```yaml
+# librechat.yaml
+interface:
+  multiConvo: true
+```
+
+With multi-conversation mode:
+- Open multiple chat windows
+- Switch between conversations quickly
+- Compare responses across different models
+
+## Conversation Export
+
+Export conversations for backup or analysis:
+
+<Tabs>
+  <Tab title="Single Conversation">
+    1. Open conversation options
+    2. Select **Export**
+    3. Choose format (JSON, Markdown, etc.)
+    4. Download file
+  </Tab>
+  
+  <Tab title="Bulk Export">
+    Use the bulk actions menu to export multiple conversations at once.
+  </Tab>
+</Tabs>
+
+### Export Rate Limiting
+
+```yaml
+# librechat.yaml
+rateLimits:
+  conversationsImport:
+    ipMax: 100
+    ipWindowInMinutes: 60
+    userMax: 50
+    userWindowInMinutes: 60
+```
+
+## Conversation Import
+
+Import conversations from other systems:
+
+```bash
+# .env
+# Limit import file size (bytes)
+CONVERSATION_IMPORT_MAX_FILE_SIZE_BYTES=262144000  # 250 MB
+```
+
+<Note>
+  Supported formats depend on the import feature configuration. Typically includes JSON exports from LibreChat or compatible systems.
+</Note>
+
+## Temporary Conversations
+
+Configure automatic cleanup of old conversations:
+
+```yaml
+# librechat.yaml
+interface:
+  # Retention period in hours (default: 720 = 30 days)
+  temporaryChatRetention: 720
+```
+
+<Info>
+  Temporary conversations are automatically deleted after the retention period. Bookmarked conversations are exempt from automatic deletion.
+</Info>
+
+## Pagination
+
+For users with many conversations:
+
+```typescript
+// Conversations are paginated for performance
+{
+  pageNumber: 1,
+  pageSize: 20,
+  totalPages: 15
+}
+```
+
+Navigate pages using the pagination controls at the bottom of the conversation list.
+
+## Configuration Reference
+
+```yaml
+# librechat.yaml
+interface:
+  bookmarks: true
+  multiConvo: true
+  fileCitations: true
+  temporaryChatRetention: 720  # hours
+  
+  peoplePicker:
+    users: true
+    groups: true
+    roles: true
+
+# Search configuration
+search:
+  enabled: true  # Implicit via SEARCH=true in .env
+
+# Rate limits
+rateLimits:
+  conversationsImport:
+    ipMax: 100
+    ipWindowInMinutes: 60
+    userMax: 50
+    userWindowInMinutes: 60
+```
+
+```bash
+# .env
+SEARCH=true
+MEILI_HOST=http://0.0.0.0:7700
+MEILI_MASTER_KEY=your-key
+MEILI_NO_ANALYTICS=true
+# MEILI_NO_SYNC=true  # Disable indexing in multi-node setups
+
+ALLOW_SHARED_LINKS=true
+ALLOW_SHARED_LINKS_PUBLIC=true
+
+CONVERSATION_IMPORT_MAX_FILE_SIZE_BYTES=262144000
+```
+
+## Best Practices
+
+<Tip>
+  - **Regular cleanup**: Delete or archive old conversations
+  - **Meaningful titles**: Rename important conversations
+  - **Use bookmarks**: Mark conversations you'll reference frequently
+  - **Tag consistently**: Develop a tagging system that works for you
+  - **Export regularly**: Back up important conversations
+  - **Share selectively**: Only share conversations with necessary recipients
+</Tip>
+
+## Troubleshooting
+
+<Accordion title="Search not working">
+  - Verify MeiliSearch is running (`docker ps`)
+  - Check `SEARCH=true` in `.env`
+  - Ensure `MEILI_HOST` is accessible
+  - Check MeiliSearch logs for errors
+</Accordion>
+
+<Accordion title="Conversations not loading">
+  - Check MongoDB connection
+  - Verify sufficient server resources
+  - Clear browser cache
+  - Check for JavaScript errors in console
+</Accordion>
+
+<Accordion title="Sharing not available">
+  - Ensure `peoplePicker` is configured
+  - Check user permissions
+  - Verify authentication is working
+</Accordion>
+
+<Accordion title="Auto-titles not generating">
+  - Check `TITLE_CONVO` is enabled
+  - Verify `OPENAI_TITLE_MODEL` or equivalent is configured
+  - Ensure model has API access
+  - Check for rate limiting
+</Accordion>
+
+## Related Features
+
+- [Presets](/features/presets)
+- [Agents](/features/agents)

@@ -1,0 +1,349 @@
+---
+title: Presets
+description: Save and reuse conversation configurations with custom model settings, prompts, and tools
+---
+
+## Overview
+
+Presets in LibreChat allow you to save complete conversation configurations including model selection, parameters, system prompts, and tool settings. This enables quick access to frequently used configurations without manual setup each time.
+
+## What Are Presets?
+
+A preset captures:
+
+- **Model selection**: Specific model and provider
+- **Model parameters**: Temperature, top_p, max tokens, etc.
+- **System instructions**: Custom prompts and behavior guidelines
+- **Tools and plugins**: Enabled tools like web search or code execution
+- **Label and metadata**: Custom display name and description
+
+Think of presets as templates for different conversation styles or use cases.
+
+## Creating a Preset
+
+<Steps>
+  <Step title="Configure Your Conversation">
+    Set up a conversation with:
+    - Desired endpoint and model
+    - Custom system prompt (if applicable)
+    - Model parameters (temperature, max tokens, etc.)
+    - Any tools or plugins
+  </Step>
+  
+  <Step title="Open Preset Menu">
+    Click the preset icon or menu in the conversation header.
+  </Step>
+  
+  <Step title="Save as Preset">
+    Choose **Save as Preset**:
+    
+    - Enter a descriptive name
+    - Optionally add a description
+    - Click **Save**
+  </Step>
+</Steps>
+
+<Tip>
+  Give presets clear, descriptive names like "Creative Writing (GPT-4)" or "Code Review (Claude)" to easily identify them later.
+</Tip>
+
+## Using Presets
+
+### Load a Preset
+
+<Steps>
+  <Step title="Start New Conversation">
+    Click **New Chat** or the new conversation button.
+  </Step>
+  
+  <Step title="Select Preset">
+    Open the preset selector and choose your saved preset.
+  </Step>
+  
+  <Step title="Start Chatting">
+    The conversation inherits all preset settings automatically.
+  </Step>
+</Steps>
+
+### Modify Active Preset
+
+You can adjust settings after loading a preset:
+
+- Changes apply only to the current conversation
+- Original preset remains unchanged
+- Save modified settings as a new preset if desired
+
+## Preset Configuration
+
+Control preset availability in `librechat.yaml`:
+
+```yaml
+# librechat.yaml
+interface:
+  presets: true  # Enable/disable presets
+```
+
+## Example Preset Configurations
+
+<Tabs>
+  <Tab title="Creative Writing">
+    ```json
+    {
+      "title": "Creative Writer",
+      "endpoint": "openAI",
+      "model": "gpt-4o",
+      "modelLabel": "GPT-4o Creative",
+      "promptPrefix": "You are a creative writing assistant. Help users craft compelling stories, characters, and dialogue.",
+      "temperature": 0.9,
+      "top_p": 0.95,
+      "max_tokens": 4096,
+      "presence_penalty": 0.6,
+      "frequency_penalty": 0.3
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Code Assistant">
+    ```json
+    {
+      "title": "Code Helper",
+      "endpoint": "anthropic",
+      "model": "claude-sonnet-4",
+      "modelLabel": "Claude Sonnet Code",
+      "promptPrefix": "You are an expert programming assistant. Provide clean, efficient code with explanations.",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "max_tokens": 8192
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Research Assistant">
+    ```json
+    {
+      "title": "Research Pro",
+      "endpoint": "google",
+      "model": "gemini-2.5-pro",
+      "modelLabel": "Gemini Research",
+      "promptPrefix": "You are a research assistant. Provide thorough, well-cited answers with multiple perspectives.",
+      "temperature": 0.4,
+      "top_p": 0.9,
+      "max_tokens": 8192,
+      "tools": ["web_search"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Concise Responder">
+    ```json
+    {
+      "title": "Quick Answers",
+      "endpoint": "openAI",
+      "model": "gpt-4o-mini",
+      "modelLabel": "GPT-4o Mini Fast",
+      "promptPrefix": "Provide concise, direct answers. Be brief and to the point.",
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "max_tokens": 512
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Model Parameters Explained
+
+<Accordion title="Temperature">
+  Controls randomness in responses:
+  
+  - **0.0-0.3**: Focused and deterministic (good for factual tasks)
+  - **0.4-0.7**: Balanced (general purpose)
+  - **0.8-1.0**: Creative and varied (good for creative writing)
+  
+  ```json
+  "temperature": 0.7
+  ```
+</Accordion>
+
+<Accordion title="Top P (Nucleus Sampling)">
+  Controls diversity via probability mass:
+  
+  - **0.9-1.0**: More diverse responses
+  - **0.5-0.8**: More focused responses
+  - Usually kept high (0.9) when adjusting temperature
+  
+  ```json
+  "top_p": 0.9
+  ```
+</Accordion>
+
+<Accordion title="Max Tokens">
+  Maximum response length:
+  
+  - Depends on model context window
+  - Higher = longer responses (but more cost)
+  - Consider conversation history in token budget
+  
+  ```json
+  "max_tokens": 4096
+  ```
+</Accordion>
+
+<Accordion title="Presence Penalty">
+  Reduces repetition of topics:
+  
+  - **0.0**: No penalty
+  - **0.1-0.5**: Mild reduction in repetition
+  - **0.6-1.0**: Strong push for new topics
+  
+  ```json
+  "presence_penalty": 0.3
+  ```
+</Accordion>
+
+<Accordion title="Frequency Penalty">
+  Reduces repetition of exact phrases:
+  
+  - **0.0**: No penalty
+  - **0.1-0.5**: Mild reduction
+  - **0.6-1.0**: Strong reduction
+  
+  ```json
+  "frequency_penalty": 0.3
+  ```
+</Accordion>
+
+## Preset Titles and Labels
+
+Presets generate display titles based on configuration:
+
+```typescript
+// Title generation
+const title = `${preset.title}: ${model}${label ? ` (${label})` : ''}`
+
+// Examples:
+// "Creative Writer: gpt-4o"
+// "Code Helper: claude-sonnet-4 (Fast)"
+// "Research Pro: gemini-2.5-pro"
+```
+
+## Sharing Presets
+
+<Info>
+  Currently, presets are user-specific and stored locally. Sharing presets between users requires manual export/import or admin configuration.
+</Info>
+
+## Preset vs. Agent
+
+<Tabs>
+  <Tab title="Presets">
+    **Best for:**
+    - Quick model + parameter configurations
+    - Different "modes" for the same model
+    - Simple prompt templates
+    - Fast switching between configurations
+    
+    **Limitations:**
+    - No persistent tools or capabilities
+    - Cannot chain multiple steps
+    - No file search or custom actions
+  </Tab>
+  
+  <Tab title="Agents">
+    **Best for:**
+    - Complex tool usage (code execution, web search)
+    - Multi-step workflows
+    - File search and document analysis
+    - Custom API integrations
+    - Shareable configurations
+    
+    **Overhead:**
+    - More setup required
+    - Persisted in database
+    - More suitable for reusable workflows
+  </Tab>
+</Tabs>
+
+<Tip>
+  Use **Presets** for quick parameter/prompt changes. Use **Agents** for tool-enabled workflows.
+</Tip>
+
+## Configuration Reference
+
+```yaml
+# librechat.yaml
+interface:
+  presets: true  # Enable presets
+  
+  # Control prompt management (related feature)
+  prompts:
+    use: true     # Allow using prompts
+    create: true  # Allow creating prompts
+    share: false  # Allow sharing prompts
+    public: false # Allow public prompts
+```
+
+## Best Practices
+
+<Tip>
+  - **Name clearly**: Use descriptive names that indicate purpose
+  - **Document parameters**: Note why you chose specific values
+  - **Test iterations**: Fine-tune parameters based on results
+  - **Organize by use case**: Group related presets
+  - **Version control**: Create new presets when experimenting rather than overwriting
+</Tip>
+
+## Common Preset Patterns
+
+### Task-Specific Presets
+
+```
+- "Debug Code" (low temp, focused)
+- "Brainstorm Ideas" (high temp, creative)
+- "Summarize Docs" (medium temp, concise max_tokens)
+- "Translate Text" (low temp, deterministic)
+```
+
+### Model Comparison Presets
+
+```
+- "GPT-4o Standard"
+- "Claude Sonnet Standard"
+- "Gemini Pro Standard"
+
+(Same parameters, different models for A/B testing)
+```
+
+### Tone Presets
+
+```
+- "Professional" (formal promptPrefix)
+- "Casual" (friendly promptPrefix)
+- "Technical" (expert promptPrefix)
+- "Simplified" (ELI5 promptPrefix)
+```
+
+## Troubleshooting
+
+<Accordion title="Preset not loading">
+  - Verify the model is still available
+  - Check endpoint configuration in `librechat.yaml`
+  - Ensure you have access to the selected model
+</Accordion>
+
+<Accordion title="Parameters not applying">
+  - Some models don't support all parameters
+  - Check model documentation for supported options
+  - Verify parameter values are within valid ranges
+</Accordion>
+
+<Accordion title="Can't save preset">
+  - Ensure `interface.presets: true` in config
+  - Check browser local storage isn't full
+  - Try a different browser
+</Accordion>
+
+## Related Features
+
+- [Agents](/features/agents)
+- [Conversation Management](/features/conversation-management)
+- [Model Parameters Documentation](https://platform.openai.com/docs/api-reference/chat/create)

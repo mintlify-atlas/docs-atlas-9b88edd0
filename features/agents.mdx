@@ -1,0 +1,265 @@
+---
+title: Agents
+description: Build AI agents with custom tools, actions, and multi-step reasoning capabilities in LibreChat
+---
+
+## Overview
+
+Agents in LibreChat are powerful AI assistants that can use tools, execute code, search the web, and perform complex multi-step tasks. They combine language models with extensible capabilities through the agent builder interface.
+
+## What Are Agents?
+
+Agents extend basic chat functionality by:
+
+- **Using Tools**: Execute code, search the web, generate images, and access custom APIs
+- **Multi-Step Reasoning**: Break down complex tasks into sequential steps
+- **File Search**: Retrieve information from uploaded documents
+- **Custom Actions**: Connect to external APIs via OpenAPI specifications
+- **Agent Handoffs**: Chain multiple specialized agents together
+
+## Creating an Agent
+
+<Steps>
+  <Step title="Open the Agent Builder">
+    Click the **Agent** button in the side panel or select an existing agent to modify.
+  </Step>
+  
+  <Step title="Configure Basic Settings">
+    Set the agent's name, description, and custom instructions that guide its behavior.
+    
+    ```yaml
+    # Example agent configuration
+    name: "Research Assistant"
+    description: "Helps research topics and summarize findings"
+    instructions: "You are a research assistant. Search the web for accurate information and provide detailed summaries with citations."
+    ```
+  </Step>
+  
+  <Step title="Select Model and Provider">
+    Choose the AI model that powers your agent. Different models offer different capabilities:
+    
+    - **GPT-4**: Best for complex reasoning
+    - **Claude**: Excellent for analysis and writing
+    - **Gemini**: Strong multimodal capabilities
+  </Step>
+  
+  <Step title="Enable Capabilities">
+    Toggle the tools and capabilities your agent needs:
+    
+    - **Code Interpreter**: Execute Python code
+    - **Web Search**: Search and retrieve web content
+    - **File Search**: Query uploaded documents
+    - **Image Generation**: Create images with DALL-E, Flux, or Stable Diffusion
+    - **Actions**: Connect to external APIs
+  </Step>
+  
+  <Step title="Configure Advanced Settings (Optional)">
+    Fine-tune behavior with advanced options:
+    
+    - **Recursion Limit**: Maximum steps for multi-step tasks (default: 25)
+    - **Model Parameters**: Temperature, top_p, max tokens
+    - **Agent Handoffs**: Chain multiple agents together
+    - **Sequential Outputs**: Show or hide intermediate reasoning steps
+  </Step>
+</Steps>
+
+## Agent Capabilities
+
+### Code Interpreter
+
+Execute Python code in a secure sandboxed environment.
+
+<Accordion title="Configuration">
+  ```yaml
+  # librechat.yaml
+  endpoints:
+    agents:
+      capabilities: ["execute_code"]
+  ```
+  
+  API key required for code execution:
+  
+  ```bash
+  # .env
+  LIBRECHAT_CODE_API_KEY=your-key
+  ```
+</Accordion>
+
+### Web Search
+
+Search the internet and retrieve relevant information.
+
+<Accordion title="Configuration">
+  ```yaml
+  # librechat.yaml
+  webSearch:
+    serperApiKey: '${SERPER_API_KEY}'     # Search provider
+    firecrawlApiKey: '${FIRECRAWL_API_KEY}' # Content scraper
+    jinaApiKey: '${JINA_API_KEY}'         # Result reranker
+  ```
+</Accordion>
+
+### File Search
+
+Query uploaded documents using vector search and retrieval.
+
+<Info>
+  File search uses RAG (Retrieval Augmented Generation) to find relevant information in your documents. Configure citation settings in `librechat.yaml`:
+  
+  ```yaml
+  agents:
+    maxCitations: 30
+    maxCitationsPerFile: 7
+    minRelevanceScore: 0.45  # 0.0 to 1.0
+  ```
+</Info>
+
+### Actions (Custom APIs)
+
+Connect agents to external services via OpenAPI specifications.
+
+<Accordion title="Adding an Action">
+  <Steps>
+    <Step title="Prepare OpenAPI Spec">
+      Create or import an OpenAPI 3.x specification for your API.
+    </Step>
+    
+    <Step title="Configure Domain Allowlist">
+      For security, explicitly allow API domains:
+      
+      ```yaml
+      # librechat.yaml
+      actions:
+        allowedDomains:
+          - 'api.example.com'
+          - 'https://internal.api:8443'  # With protocol/port
+      ```
+    </Step>
+    
+    <Step title="Add Action to Agent">
+      In the agent builder, paste the OpenAPI spec URL or upload the specification file.
+    </Step>
+  </Steps>
+</Accordion>
+
+<Warning>
+  By default, SSRF targets (localhost, private IPs, `.internal`/`.local` TLDs) are blocked. You must explicitly add them to `allowedDomains` to enable access.
+</Warning>
+
+## Advanced Features
+
+### Recursion Limit
+
+Control how many steps an agent can take:
+
+```yaml
+# librechat.yaml
+endpoints:
+  agents:
+    recursionLimit: 50        # Default for all agents
+    maxRecursionLimit: 100    # Maximum allowed
+```
+
+### Agent Handoffs
+
+Chain multiple specialized agents together for complex workflows:
+
+```typescript
+// Example: Research Agent → Writer Agent → Editor Agent
+edges: [
+  { source: "research-agent-id", target: "writer-agent-id" },
+  { source: "writer-agent-id", target: "editor-agent-id" }
+]
+```
+
+### Model Parameters
+
+Fine-tune model behavior:
+
+```json
+{
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "max_tokens": 4096,
+  "frequency_penalty": 0.0,
+  "presence_penalty": 0.0
+}
+```
+
+## Sharing Agents
+
+<Tabs>
+  <Tab title="Private Sharing">
+    Share agents with specific users or groups:
+    
+    1. Click **Share** in the agent footer
+    2. Select users, groups, or roles
+    3. Click **Share**
+  </Tab>
+  
+  <Tab title="Public Sharing">
+    Make agents available to all users:
+    
+    1. Enable public sharing in `librechat.yaml`:
+    ```yaml
+    interface:
+      agents:
+        public: true
+    ```
+    2. Toggle **Public** when sharing
+  </Tab>
+</Tabs>
+
+## Agent Categories
+
+Organize agents by category for easier discovery:
+
+- **Productivity**: Task management, scheduling, email
+- **Research**: Information gathering, analysis
+- **Creative**: Writing, design, content creation
+- **Technical**: Coding, debugging, DevOps
+- **Custom**: Your own categories
+
+## Configuration Reference
+
+```yaml
+# librechat.yaml
+interface:
+  agents:
+    use: true      # Allow users to use agents
+    create: true   # Allow users to create agents
+    share: true    # Allow private sharing
+    public: false  # Allow public sharing
+
+endpoints:
+  agents:
+    disableBuilder: false
+    recursionLimit: 25
+    maxRecursionLimit: 100
+    maxCitations: 30
+    maxCitationsPerFile: 7
+    minRelevanceScore: 0.45
+    capabilities:
+      - execute_code
+      - file_search
+      - web_search
+      - actions
+      - tools
+```
+
+## Best Practices
+
+<Tip>
+  - **Clear Instructions**: Write specific, actionable instructions for your agent
+  - **Right Tools**: Only enable capabilities the agent needs
+  - **Test Iteratively**: Start simple and add complexity gradually
+  - **Monitor Tokens**: Agents with multiple steps use more tokens
+  - **Set Limits**: Use recursion limits to prevent runaway processes
+</Tip>
+
+## Related Features
+
+- [Code Interpreter](/features/code-interpreter)
+- [Web Search](/features/web-search)
+- [Artifacts](/features/artifacts)
+- [Presets](/features/presets)

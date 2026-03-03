@@ -1,0 +1,341 @@
+---
+title: Users API
+description: API endpoints for user account management and settings
+---
+
+The Users API provides endpoints for managing user accounts, including retrieving user information, updating plugins, handling email verification, accepting terms of service, and deleting accounts.
+
+## Authentication
+
+All endpoints (except email verification endpoints) require JWT authentication via the `Authorization` header:
+
+```bash
+Authorization: Bearer <your_jwt_token>
+```
+
+---
+
+## Get User Information
+
+<CodeGroup>
+```bash GET /api/user
+curl -X GET "https://your-domain.com/api/user" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Retrieve the authenticated user's information.
+
+### Response
+
+<ResponseField name="id" type="string">
+  User ID
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  Username
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Email address
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name
+</ResponseField>
+
+<ResponseField name="avatar" type="string">
+  Avatar URL (S3 URLs are automatically refreshed if expired)
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  User role (e.g., "USER", "ADMIN")
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  Authentication provider ("local", "google", "github", etc.)
+</ResponseField>
+
+<ResponseField name="emailVerified" type="boolean">
+  Whether email is verified
+</ResponseField>
+
+<ResponseField name="plugins" type="array">
+  Array of installed plugin identifiers
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp
+</ResponseField>
+
+Note: Sensitive fields (password, totpSecret, backupCodes) are always excluded from the response.
+
+---
+
+## Get Terms of Service Status
+
+<CodeGroup>
+```bash GET /api/user/terms
+curl -X GET "https://your-domain.com/api/user/terms" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Check whether the user has accepted the terms of service.
+
+### Response
+
+<ResponseField name="termsAccepted" type="boolean">
+  Whether the user has accepted terms
+</ResponseField>
+
+### Error Responses
+
+- **404 Not Found**: User not found
+- **500 Internal Server Error**: Failed to fetch status
+
+---
+
+## Accept Terms of Service
+
+<CodeGroup>
+```bash POST /api/user/terms/accept
+curl -X POST "https://your-domain.com/api/user/terms/accept" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Mark the terms of service as accepted for the authenticated user.
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Terms accepted successfully"
+</ResponseField>
+
+### Error Responses
+
+- **404 Not Found**: User not found
+- **500 Internal Server Error**: Failed to accept terms
+
+---
+
+## Update User Plugins
+
+<CodeGroup>
+```bash POST /api/user/plugins
+curl -X POST "https://your-domain.com/api/user/plugins" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pluginKey": "web_search",
+    "action": "install",
+    "auth": {
+      "TAVILY_API_KEY": "your-api-key"
+    },
+    "isEntityTool": false
+  }'
+```
+</CodeGroup>
+
+Install or uninstall plugins and manage plugin authentication credentials.
+
+### Request Body
+
+<ParamField body="pluginKey" type="string" required>
+  Plugin identifier (e.g., "web_search", "mcp_serverName")
+</ParamField>
+
+<ParamField body="action" type="string" required>
+  Action to perform: "install" or "uninstall"
+</ParamField>
+
+<ParamField body="auth" type="object">
+  Authentication credentials (key-value pairs)
+</ParamField>
+
+<ParamField body="isEntityTool" type="boolean" default="false">
+  Whether this is an entity-level tool (doesn't update user.plugins array)
+</ParamField>
+
+### Plugin-Specific Behavior
+
+#### Web Search Plugin
+When installing/uninstalling `web_search`, all web search provider keys are managed:
+- Tavily, Google Search, Brave Search, SerpAPI, etc.
+
+#### MCP Servers
+For MCP tools (starting with `mcp_`):
+- **Install**: Saves provided credentials
+- **Uninstall**: Deletes all credentials for the MCP server and disconnects active sessions
+- **OAuth MCP Servers**: Automatically revokes OAuth tokens on uninstall
+
+### Response
+
+Returns **200 OK** on success. Error responses include status code and message.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid parameters
+- **500 Internal Server Error**: Plugin update failed
+
+---
+
+## Verify Email
+
+<CodeGroup>
+```bash POST /api/user/verify
+curl -X POST "https://your-domain.com/api/user/verify" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "<verification_token>"
+  }'
+```
+</CodeGroup>
+
+Verify a user's email address using a verification token sent via email. No authentication required.
+
+### Request Body
+
+<ParamField body="token" type="string" required>
+  Email verification token from the verification link
+</ParamField>
+
+### Response
+
+Returns verification result.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid or expired token
+- **500 Internal Server Error**: Verification failed
+
+---
+
+## Resend Verification Email
+
+<CodeGroup>
+```bash POST /api/user/verify/resend
+curl -X POST "https://your-domain.com/api/user/verify/resend" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+</CodeGroup>
+
+Resend the email verification link. Rate limited.
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  Email address to send verification to
+</ParamField>
+
+### Response
+
+Returns success message.
+
+### Error Responses
+
+- **400 Bad Request**: Invalid email or already verified
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Failed to send email
+
+---
+
+## Delete User Account
+
+<CodeGroup>
+```bash DELETE /api/user/delete
+curl -X DELETE "https://your-domain.com/api/user/delete" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+Permanently delete the authenticated user's account and all associated data. Requires account deletion to be enabled in server configuration.
+
+### What Gets Deleted
+
+The following data is permanently removed:
+- All messages and conversations
+- All user sessions
+- All presets and settings
+- All files (including cloud storage)
+- All tool calls and memory entries
+- All agents and assistants
+- All API keys and tokens
+- All conversation tags
+- All user prompts and actions
+- User profile and authentication data
+- ACL entries and group memberships
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "User deleted"
+</ResponseField>
+
+### Error Responses
+
+- **403 Forbidden**: Account deletion is disabled in server configuration
+- **500 Internal Server Error**: Deletion failed
+
+---
+
+## User Settings
+
+User-specific settings are managed through a separate sub-route. See the settings endpoint at `/api/user/settings` for managing user preferences and configuration.
+
+---
+
+## Plugin Management
+
+### Available Plugins
+
+Common plugins that can be managed:
+
+| Plugin Key | Description | Required Auth |
+|------------|-------------|---------------|
+| `web_search` | Web search capability | Provider API keys (Tavily, Google, etc.) |
+| `code_interpreter` | Execute code | May require API key depending on provider |
+| `dall-e` | Image generation | OpenAI API key |
+| `mcp_<serverName>` | MCP server tools | Server-specific credentials |
+
+### Plugin Auth Flow
+
+1. **Install Plugin**: 
+   - Frontend calls `POST /api/user/plugins` with `action: "install"` and credentials
+   - Server validates and stores credentials securely
+   - Plugin is added to user's installed plugins list
+
+2. **Update Credentials**:
+   - Call `POST /api/user/plugins` with `action: "install"` and new credentials
+   - Existing credentials are updated
+
+3. **Uninstall Plugin**:
+   - Call `POST /api/user/plugins` with `action: "uninstall"` and `auth: {}`
+   - Credentials are deleted
+   - Plugin is removed from user's list
+   - For MCP servers, active connections are disconnected
+
+### MCP OAuth Cleanup
+
+When uninstalling OAuth-enabled MCP servers:
+1. Access and refresh tokens are revoked at the OAuth provider
+2. Tokens are deleted from the database
+3. OAuth flow state is cleared from cache
+4. Active server connections are terminated
+
+---
+
+## Common Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or malformed request |
+| 401 | Unauthorized - Invalid or missing JWT token |
+| 403 | Forbidden - Operation not allowed (e.g., account deletion disabled) |
+| 404 | Not Found - User not found |
+| 429 | Too Many Requests - Rate limit exceeded (verification emails) |
+| 500 | Internal Server Error - Server-side error occurred |
